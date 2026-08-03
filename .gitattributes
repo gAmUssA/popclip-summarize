@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+*.md      text diff=markdown
+*.yaml    text
+*.yml     text
+*.js      text diff=javascript
+*.swift   text diff=swift
+Makefile  text
+
+*.png     binary
+*.svg     text
+*.popclipextz binary

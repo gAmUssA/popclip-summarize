@@ -1,0 +1,34 @@
+# This machine's global gitignore (~/.gitignore) excludes `.github`, which would
+# silently drop the CI workflow. Re-include it here. The directory itself must be
+# un-excluded first — git cannot re-include a file under an excluded directory.
+!.github/
+
+# Build artifacts
+dist/
+.tmp/
+*.popclipextz
+
+# Swift
+.build/
+*.o
+*.swiftmodule
+*.dSYM/
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# Never commit credentials — the API key belongs in the macOS Keychain,
+# which is where PopClip's `secret` option type stores it.
+.env
+.env.*
+*.key
+secrets.*

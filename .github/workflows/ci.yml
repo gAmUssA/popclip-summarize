@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Validate extension
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate config, scripts, and permissions
+        run: make check
+
+      - name: Build distributable package
+        run: make package
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AISummarize.popclipextz
+          path: dist/AISummarize.popclipextz
+          if-no-files-found: error

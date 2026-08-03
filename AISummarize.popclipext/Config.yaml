@@ -1,0 +1,106 @@
+name: AI Summarize
+identifier: io.gamov.popclip.extension.ai-summarize
+description: Summarize the selected text with Claude (cloud) or Apple Intelligence (on-device).
+popclip version: 4586
+entitlements: [network]
+
+options:
+  - identifier: enginehead
+    type: heading
+    label: Claude
+
+  - identifier: apikey
+    type: secret
+    label: API Key
+    description: >-
+      Create a key at https://console.anthropic.com/settings/keys
+      Stored in the macOS Keychain. Only the Claude action uses it.
+
+  - identifier: model
+    type: multiple
+    label: Model
+    default value: claude-haiku-4-5
+    values:
+      - claude-haiku-4-5
+      - claude-sonnet-5
+      - claude-opus-5
+    value labels:
+      - Haiku 4.5 — fastest, cheapest
+      - Sonnet 5 — balanced
+      - Opus 5 — highest quality
+
+  - identifier: custommodel
+    type: string
+    label: Custom Model
+    description: >-
+      Optional. Any Anthropic model ID. Overrides the Model setting above.
+
+  - identifier: summaryhead
+    type: heading
+    label: Summary
+
+  - identifier: style
+    type: multiple
+    label: Style
+    default value: concise
+    values:
+      - concise
+      - bullets
+      - tldr
+    value labels:
+      - Concise paragraph
+      - Bullet points
+      - One-line TL;DR
+
+  - identifier: extra
+    type: string
+    label: Extra Instructions
+    description: >-
+      Optional. Appended to the prompt for both engines.
+      Example: "Reply in French." or "Keep all product names verbatim."
+
+  - identifier: output
+    type: multiple
+    label: Claude Result
+    default value: large
+    values:
+      - large
+      - preview
+      - copy
+      - paste
+    value labels:
+      - Large Type — full screen, also copies
+      - Popup — click to paste
+      - Copy to clipboard
+      - Replace the selection
+    description: >-
+      How to show Claude's summary. Large Type fills the screen and truncates
+      nothing, so it is the easiest to read; the popup cuts off at 160
+      characters. Applies to the Claude action only — PopClip gives
+      shell-script actions no way to open Large Type, so the Apple
+      Intelligence action always uses the popup.
+
+  - identifier: actionshead
+    type: heading
+    label: Actions
+
+  - identifier: showapple
+    type: boolean
+    label: Show Apple Intelligence action
+    default value: true
+    description: >-
+      Requires macOS 26 or later on Apple silicon, with Apple Intelligence
+      turned on in System Settings. Runs fully on-device — no API key, no
+      network, no cost. Turn this off to hide the action on unsupported Macs.
+
+actions:
+  - title: Summarize (Claude)
+    icon: symbol:sparkles
+    javascript file: claude.js
+    requirements: [text]
+
+  - title: Summarize (Apple Intelligence)
+    icon: symbol:apple.logo
+    shell script file: apple-intelligence.swift
+    after: preview-result
+    requirements: [text, option-showapple=1]
