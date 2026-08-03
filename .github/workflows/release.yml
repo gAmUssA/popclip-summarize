@@ -19,6 +19,18 @@ jobs:
       - name: Validate extension
         run: make check
 
+      - name: Verify the build version matches the tag
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          actual="$(make version)"
+          if [ "$expected" != "$actual" ]; then
+            echo "Tag $GITHUB_REF_NAME implies version '$expected'," \
+                 "but the build produces '$actual'." >&2
+            echo "Refusing to publish a mislabelled artifact." >&2
+            exit 1
+          fi
+          echo "version check ok: $actual"
+
       - name: Build versioned package
         run: |
           make package
@@ -28,12 +40,18 @@ jobs:
         id: notes
         run: |
           version="${GITHUB_REF_NAME#v}"
-          # Pull the body of "## [x.y.z]" up to the next "## " heading.
-          awk -v v="$version" '
-            $0 ~ "^## \\[" v "\\]" { grab = 1; next }
-            grab && /^## / { exit }
-            grab { print }
-          ' CHANGELOG.md > release-notes.md
+          : > release-notes.md
+          # Pull the body of "## [x.y.z]" up to the next "## " heading. The
+          # version is interpolated into a regex, so escape its dots first —
+          # otherwise "## [1x2y3]" would match the tag 1.2.3.
+          if [ -f CHANGELOG.md ]; then
+            awk -v v="$version" '
+              BEGIN { gsub(/\./, "\\.", v) }
+              $0 ~ "^## \\[" v "\\]" { grab = 1; next }
+              grab && /^## / { exit }
+              grab { print }
+            ' CHANGELOG.md > release-notes.md
+          fi
           if [ ! -s release-notes.md ]; then
             echo "No changelog section for $version; falling back to generated notes."
             echo "generated=true" >> "$GITHUB_OUTPUT"

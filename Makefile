@@ -3,7 +3,11 @@ DIST    := dist
 
 # Version comes from the git tag (v1.2.3 -> 1.2.3). Untagged builds get the
 # short commit sha so a local package is never mistaken for a release.
-VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo dev)
+#
+# Capture git's output before substituting the fallback. Piping into `|| echo dev`
+# would never fire: the pipeline's status is sed's, and sed succeeds on empty
+# input — yielding an empty version and a file named `AISummarize-.popclipextz`.
+VERSION := $(shell v=$$(git describe --tags --always --dirty 2>/dev/null); echo "$${v:-dev}" | sed 's/^v//')
 PACKAGE := $(DIST)/AISummarize-$(VERSION).popclipextz
 
 .DEFAULT_GOAL := help
@@ -22,8 +26,13 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 		abort "missing actions"    unless d["actions"].is_a?(Array) && !d["actions"].empty?; \
 		puts "    #{d["actions"].length} actions, #{d["options"].length} options"'
 	@echo "==> claude.js is valid JavaScript"
-	@mkdir -p .tmp && cp $(EXT)/claude.js .tmp/claude-check.mjs
-	@node --check .tmp/claude-check.mjs && rm -rf .tmp
+	@# Checked as .mjs because the file combines `require()` with top-level
+	@# `await`. Node accepts that pair in neither mode — as .cjs, top-level await
+	@# is a syntax error — while PopClip's engine supports both. .mjs is the
+	@# closest available approximation and still catches real syntax errors.
+	@# `trap` runs on failure too, so a bad parse leaves no stale .tmp behind.
+	@mkdir -p .tmp
+	@trap 'rm -rf .tmp' EXIT; cp $(EXT)/claude.js .tmp/claude-check.mjs && node --check .tmp/claude-check.mjs
 	@echo "==> apple-intelligence.swift parses"
 	@swiftc -parse $(EXT)/apple-intelligence.swift
 	@echo "==> apple-intelligence.swift is executable with a shebang"
