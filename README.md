@@ -9,14 +9,17 @@ Two engines, one extension:
 | **Summarize (Claude)** | Anthropic Messages API | API key, network | ~$0.002 / summary on Haiku 4.5 | Text is sent to Anthropic |
 | **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free | Nothing leaves the Mac |
 
-Both actions honor the same **Style** and **Extra Instructions** settings, so you can
-switch engines without relearning anything.
+Both actions honor the same **Style** and **Extra Instructions** settings and show
+their result in the same native floating panel, so you can switch engines without
+relearning anything.
 
 ---
 
 ## Requirements
 
 - macOS 10.15+ and [PopClip](https://www.popclip.app/) build **4586** or later.
+- The **Xcode Command Line Tools** (`xcode-select --install`). Both engines and
+  the result window are Swift, compiled once into `~/Library/Caches` on first use.
 - **Claude action:** an [Anthropic API key](https://console.anthropic.com/settings/keys).
 - **Apple Intelligence action:** macOS **26** or later on Apple silicon, with
   Apple Intelligence enabled in *System Settings › Apple Intelligence & Siri*.
@@ -49,22 +52,28 @@ Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 | **Custom Model** | — | Any Anthropic model ID. Overrides **Model**. |
 | **Style** | Concise paragraph | Also: bullet points, or a one-line TL;DR. Applies to both engines. |
 | **Extra Instructions** | — | Appended to the prompt for both engines. e.g. `Reply in French.` |
-| **Claude Result** | Large Type | Large Type (full screen), popup with click-to-paste, copy, or replace the selection. |
+| **Result** | Summary window | The floating panel, full-screen large type, or clipboard-only. Applies to both engines. |
 | **Show Apple Intelligence action** | On | Turn off to hide the second action on Macs without Apple Intelligence. |
 
 ### Reading the summary
 
-PopClip's compact popup **truncates at 160 characters**, which cuts off most
-paragraph-length summaries. So the Claude action defaults to **Large Type** —
-a full-screen overlay that truncates nothing and is readable across the room.
-It also copies the summary to the clipboard silently, since Large Type has no
-paste button; dismiss the overlay and paste wherever you need it.
+Neither of PopClip's built-in result handlers is much good for a paragraph of
+prose: the compact popup **truncates at 160 characters**, and Large Type takes
+over the whole screen. So both actions instead open a small native panel next to
+the pointer — an `NSPanel` with the standard popover material, floating above
+whatever app you are in.
 
-The Apple Intelligence action always uses the compact popup: PopClip gives
-shell-script actions a fixed set of result handlers and none of them opens
-Large Type. If you want its output fully visible, pick the **Bullet points** or
-**One-line TL;DR** style — both fit inside 160 characters. Click-to-paste always
-pastes the untruncated text regardless of what is shown.
+You can select text in it, resize it, scroll it if the summary is long, hit
+**Copy**, or dismiss it with **Escape**, ⌘W, or the close button. The summary is
+put on the clipboard either way, so ⌘V works after the panel is gone.
+
+**Full screen** is the large-type alternative: the summary scaled up to fill the
+display, above the menu bar, dismissed with Escape, Return, Space, or a click.
+The font size is fitted to the text, so a one-line TL;DR really does fill the
+screen. This is drawn by the extension — PopClip's own Large Type is reachable
+only from a `javascript file` action, which cannot launch a window at all.
+
+Set **Result** to *Copy to clipboard only* if you would rather have no window at all.
 
 ## Cost
 
@@ -86,8 +95,16 @@ Intelligence & Siri*, then try again.
 **"This Mac does not support Apple Intelligence"** — you need macOS 26+ on Apple
 silicon. Turn the action off in the extension settings and use Claude instead.
 
-**The first Apple Intelligence summary is slow (~15s), later ones are fast (~2s)** —
+**The first summary after installing or updating is slow** — the Swift helpers
+compile into `~/Library/Caches/io.gamov.popclip.extension.ai-summarize` on first
+use (~3s, once per extension update). Run `make prebuild` to get it out of the way.
+
+**The first Apple Intelligence summary is slow (~15s), later ones are fast (~1.5s)** —
 that is the on-device model loading into memory on first use. It stays warm afterwards.
+
+**No window appears** — check that **Result** is set to *Summary window*, and that
+`xcode-select -p` prints a path. Build errors are logged next to the binaries in
+`~/Library/Caches/io.gamov.popclip.extension.ai-summarize/`.
 
 **"Selection is too long for the on-device model"** — the on-device context window
 is small (4K tokens on macOS 26). The script caps input at 6,000 characters. Use
@@ -98,35 +115,49 @@ the Claude action for long documents; Haiku 4.5 has a 200K-token window.
 ```
 AISummarize.popclipext/
 ├── Config.yaml               # extension metadata, settings, and the two actions
-├── claude.js                 # JavaScript action → Anthropic Messages API
-└── apple-intelligence.swift  # shell-script action → FoundationModels (on-device)
+├── summarize-claude.sh       # action → build, run the Claude engine, present
+├── summarize-apple.sh        # action → build, run the on-device engine, present
+├── lib.sh                    # shared: build cache + result delivery
+├── claude-summarize.swift    # engine → Anthropic Messages API
+├── apple-intelligence.swift  # engine → FoundationModels (on-device)
+└── summary-window.swift      # the result panel and large type (AppKit)
 ```
 
-`Config.yaml` is a declarative PopClip config whose `actions` array mixes two
-action types: a `javascript file` action for Claude and a `shell script file`
-action for Apple Intelligence. JavaScript cannot reach Foundation Models, and
-Swift cannot call PopClip's JS API, so each engine uses the runtime that can
-actually reach it.
+Both actions are `shell script file` actions. That is forced by the window:
+PopClip's JavaScript environment has **no subprocess API**, so a JS action cannot
+launch the panel, and PopClip's own result handlers cannot draw one. The Claude
+engine was JavaScript until the window arrived; it is now Swift using
+`URLSession`, and the Keychain-backed API key still reaches it as
+`$POPCLIP_OPTION_APIKEY`.
 
-The Swift file runs via `#!/usr/bin/env swift` and needs its executable bit set —
-PopClip executes a `shell script file` directly only when it has both a shebang
-and `chmod +x`. `make check` verifies this.
+Each action wrapper does three things: compile the engine and the viewer if their
+sources changed, run the engine, then deliver the result. The viewer owns an
+AppKit run loop and lives until you close it, so it is launched **detached** —
+PopClip waits on the action process, and an attached window would hang the
+extension until dismissed.
+
+The Swift sources are compiled to `~/Library/Caches/io.gamov.popclip.extension.ai-summarize`
+and reused, keyed on a SHA-256 of the source. Interpreting them with `swift` on
+every invocation would re-typecheck AppKit and FoundationModels each time.
+Shipping a prebuilt binary would trip Gatekeeper quarantine on download instead.
 
 Contracts worth knowing if you edit these files:
 
-- **JS action:** reads `popclip.input.text` and `popclip.options.<identifier>`;
-  delivers results by calling `popclip.showText` / `copyText` / `pasteText`.
-  Throwing an `Error` whose message starts with `settings error` opens the
-  settings pane.
-- **Swift action:** reads `$POPCLIP_TEXT` and `$POPCLIP_OPTION_<IDENTIFIER>`
-  (identifiers upper-cased); stdout is the result, stderr is the error message;
-  exit `0` = success, `2` = open settings, anything else = failure.
+- **Action wrapper:** PopClip runs it directly, so it needs both a shebang and
+  its executable bit. `make check` verifies this.
+- **Engine:** reads `$POPCLIP_TEXT` and `$POPCLIP_OPTION_<IDENTIFIER>`
+  (identifiers upper-cased); stdout is the summary, stderr is the error message;
+  exit `0` = success, `2` = open settings, anything else = failure. The wrapper
+  passes all three through to PopClip unchanged.
+- **Viewer:** body text on stdin, `--title` for the titlebar, `--style
+  panel|fullscreen`. Exits when closed.
 
 ## Development
 
 ```sh
-make check        # validate YAML, JS syntax, Swift syntax, and file permissions
+make check        # validate YAML, shell syntax, Swift syntax, and file permissions
 make check-full   # adds a Swift typecheck and a live on-device smoke test
+make prebuild     # compile the Swift helpers now instead of on first use
 make install      # install into PopClip
 make version      # print the version this build would produce
 make package      # build dist/AISummarize-<version>.popclipextz

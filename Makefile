@@ -1,6 +1,10 @@
 EXT     := AISummarize.popclipext
 DIST    := dist
 
+# The scripts PopClip launches directly, as opposed to the sourced library and
+# the Swift sources, which are compiled to a cache on first use.
+ACTIONS := $(EXT)/summarize-claude.sh $(EXT)/summarize-apple.sh
+
 # Version comes from the git tag (v1.2.3 -> 1.2.3). Untagged builds get the
 # short commit sha so a local package is never mistaken for a release.
 #
@@ -25,31 +29,39 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 		abort "missing identifier" unless d["identifier"]; \
 		abort "missing actions"    unless d["actions"].is_a?(Array) && !d["actions"].empty?; \
 		puts "    #{d["actions"].length} actions, #{d["options"].length} options"'
-	@echo "==> claude.js is valid JavaScript"
-	@# Checked as .mjs because the file combines `require()` with top-level
-	@# `await`. Node accepts that pair in neither mode — as .cjs, top-level await
-	@# is a syntax error — while PopClip's engine supports both. .mjs is the
-	@# closest available approximation and still catches real syntax errors.
-	@# `trap` runs on failure too, so a bad parse leaves no stale .tmp behind.
-	@mkdir -p .tmp
-	@trap 'rm -rf .tmp' EXIT; cp $(EXT)/claude.js .tmp/claude-check.mjs && node --check .tmp/claude-check.mjs
-	@echo "==> apple-intelligence.swift parses"
-	@swiftc -parse $(EXT)/apple-intelligence.swift
-	@echo "==> apple-intelligence.swift is executable with a shebang"
-	@test -x $(EXT)/apple-intelligence.swift \
-		|| (echo "    FAIL: missing executable bit — run: chmod +x $(EXT)/apple-intelligence.swift" && exit 1)
-	@head -1 $(EXT)/apple-intelligence.swift | grep -q '^#!' \
-		|| (echo "    FAIL: missing shebang line" && exit 1)
+	@echo "==> shell scripts parse"
+	@for f in $(EXT)/*.sh; do bash -n "$$f" || exit 1; done
+	@echo "==> Swift sources parse"
+	@for f in $(EXT)/*.swift; do swiftc -parse "$$f" >/dev/null || exit 1; done
+	@echo "==> action scripts are executable with a shebang"
+	@# PopClip runs a `shell script file` directly, so it needs both — the
+	@# wrappers are the only files it launches. lib.sh is sourced, not run.
+	@for f in $(ACTIONS); do \
+		test -x "$$f" \
+			|| (echo "    FAIL: $$f missing executable bit — run: chmod +x $$f" && exit 1); \
+		head -1 "$$f" | grep -q '^#!' \
+			|| (echo "    FAIL: $$f missing shebang line" && exit 1); \
+	done
+	@echo "==> every action script named in Config.yaml exists"
+	@ruby -ryaml -e 'YAML.load_file("$(EXT)/Config.yaml")["actions"].each { |a| \
+		f = a["shell script file"] or abort "action #{a["title"]} has no shell script file"; \
+		abort "missing #{f}" unless File.exist?("$(EXT)/#{f}") }'
 	@echo "==> all checks passed"
 
 .PHONY: check-full
 check-full: check ## Also typecheck Swift and run a live on-device smoke test (macOS 26+)
 	@echo "==> Swift typecheck (needs the macOS 26 SDK)"
-	@swiftc -typecheck $(EXT)/apple-intelligence.swift
-	@echo "==> on-device summarization smoke test"
+	@for f in $(EXT)/*.swift; do swiftc -typecheck "$$f" || exit 1; done
+	@echo "==> on-device summarization smoke test, into the clipboard"
 	@POPCLIP_TEXT="PopClip is a macOS utility that shows a popup bar of actions whenever you select text. It is extensible through small packages that can run JavaScript, shell scripts, or AppleScript." \
-		POPCLIP_OPTION_STYLE=tldr \
-		$(EXT)/apple-intelligence.swift && echo "" && echo "==> smoke test passed"
+		POPCLIP_OPTION_STYLE=tldr POPCLIP_OPTION_OUTPUT=copy \
+		$(EXT)/summarize-apple.sh && pbpaste && echo "" && echo "==> smoke test passed"
+
+.PHONY: prebuild
+prebuild: ## Compile the Swift helpers into the cache now, instead of on first use
+	@bash -c 'set -euo pipefail; EXT_DIR="$(EXT)"; . $(EXT)/lib.sh; \
+		for f in $(EXT)/*.swift; do printf "    %s -> " "$$f"; build_cached "$$f"; echo; done'
+	@echo "==> helpers built"
 
 .PHONY: install
 install: check ## Install the extension into PopClip

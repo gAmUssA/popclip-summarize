@@ -61,24 +61,21 @@ options:
 
   - identifier: output
     type: multiple
-    label: Claude Result
-    default value: large
+    label: Result
+    default value: window
     values:
-      - large
-      - preview
+      - window
+      - fullscreen
       - copy
-      - paste
     value labels:
-      - Large Type — full screen, also copies
-      - Popup — click to paste
-      - Copy to clipboard
-      - Replace the selection
+      - Summary window
+      - Full screen
+      - Copy to clipboard only
     description: >-
-      How to show Claude's summary. Large Type fills the screen and truncates
-      nothing, so it is the easiest to read; the popup cuts off at 160
-      characters. Applies to the Claude action only — PopClip gives
-      shell-script actions no way to open Large Type, so the Apple
-      Intelligence action always uses the popup.
+      The summary window is a floating panel you can select text in, resize,
+      and dismiss with Escape. Full screen is large type: the text scaled up to
+      fill the display, dismissed with Escape or a click. Every setting puts the
+      summary on the clipboard, so ⌘V works afterwards. Applies to both engines.
 
   - identifier: actionshead
     type: heading
@@ -93,14 +90,16 @@ options:
       turned on in System Settings. Runs fully on-device — no API key, no
       network, no cost. Turn this off to hide the action on unsupported Macs.
 
+# Both actions are shell scripts because they present the result in a native
+# panel of their own, and PopClip's JavaScript environment cannot launch one.
+# Neither declares an `after:` key — the wrapper does its own delivering.
 actions:
   - title: Summarize (Claude)
     icon: symbol:sparkles
-    javascript file: claude.js
+    shell script file: summarize-claude.sh
     requirements: [text]
 
   - title: Summarize (Apple Intelligence)
     icon: symbol:apple.logo
-    shell script file: apple-intelligence.swift
-    after: preview-result
+    shell script file: summarize-apple.sh
     requirements: [text, option-showapple=1]

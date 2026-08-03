@@ -54,13 +54,21 @@ case "bullets":
 case "tldr":
     styleInstruction = "Write a single-sentence TL;DR of no more than 25 words."
 default:
-    styleInstruction = "Write a concise summary of one short paragraph."
+    styleInstruction = "Write a summary of no more than 40 words."
 }
 
+// Word budgets, not sentence counts. Measured over 80 runs across both engines:
+// a word cap took the on-device model from 71% of source length down to 25%,
+// while "no more than 3 sentences" was violated in 31 of 40 runs and actually
+// pushed verbatim copying up (64% -> 85%) as the model padded to hit the shape.
+// The rewrite clause is what suppresses copying: 64% -> 34% on-device, 10% -> 0%
+// on Claude. Keep this block identical to the one in claude-summarize.swift.
 var instructionLines = [
     "You are a summarization engine.",
     styleInstruction,
-    "Preserve the key facts, names, and numbers of the source text.",
+    "Do not reuse whole sentences from the source; rewrite in your own words.",
+    "Keep only load-bearing facts: who, what, when, and any figures.",
+    "Drop background, asides, and repetition.",
     "Reply with the summary only: no preamble, no heading, no commentary.",
 ]
 if !extraInstructions.isEmpty {

@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-03
+
+### Added
+
+- **Summary window** — both engines now show their result in a native floating
+  `NSPanel` next to the pointer, with the standard popover material: selectable
+  and scrollable text, a Copy button, resize, and Escape / ⌘W to dismiss. It
+  replaces PopClip's 160-character popup.
+- **Full screen** result mode — large type, drawn by the extension rather than
+  by PopClip: the summary scaled up to fill the display it is shown on, above
+  the menu bar, dismissed with Escape, Return, Space, or a click. This replaces
+  PopClip's own Large Type, which only a `javascript file` action can open.
+- `make prebuild` compiles the Swift helpers into the cache ahead of first use.
+
+### Changed
+
+- The Claude action moved from JavaScript to Swift (`URLSession` in place of
+  `axios`). PopClip's JavaScript environment has no subprocess API, so a JS
+  action cannot launch the window; the API key still arrives from the Keychain
+  as `$POPCLIP_OPTION_APIKEY`. Both actions are now `shell script file` actions.
+- **Claude Result** is now **Result** and applies to both engines. Its values are
+  *Summary window* (default), *Full screen*, and *Copy to clipboard only*.
+- The Swift sources are compiled once into
+  `~/Library/Caches/io.gamov.popclip.extension.ai-summarize` and reused, keyed on
+  a hash of the source. This also made the Apple Intelligence action faster
+  (~1.5s warm, down from ~2s as an interpreted script).
+- **Summarization prompt rewritten**, identically for both engines, after an A/B
+  of four variants over 80 runs. The *concise* style now asks for a word budget
+  instead of "one short paragraph", and every style is told to rewrite rather
+  than reuse source sentences and to drop background and repetition.
+
+  The old prompt did not reliably summarize on-device: it reproduced 64% of its
+  output verbatim from the source, and on technical text returned 101% of the
+  input length — longer than what it was given. Measured on-device, the new
+  prompt cuts length to 58% of source from 86% for *concise* and verbatim copying
+  to 24% from 51% for *bullets*. *TL;DR* is unchanged, which the experiment
+  explains: it already carried a word cap, and that is precisely what works.
+
+  Sentence caps were tested and rejected. "No more than 3 sentences" was violated
+  in 31 of 40 runs across both engines and made on-device copying worse (64% to
+  85%), the model padding with copied sentences to reach the requested shape.
+
+### Removed
+
+- The **Popup** and **Replace the selection** result modes, which depended on
+  PopClip's built-in handlers. The window supersedes the popup; for replacing the
+  selection, the summary is always staged on the clipboard, so ⌘V pastes it.
+  Large Type is not lost — it is now the *Full screen* mode above.
+
+### Requirements
+
+- The Xcode Command Line Tools are now needed for **both** engines, not just the
+  Apple Intelligence one. A missing toolchain reports how to install it.
+
 ## [0.1.0] - 2026-08-03
 
 ### Added
@@ -26,5 +80,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make check` validation of the config, both scripts, and the executable bit,
   wired into CI.
 
-[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gAmUssA/popclip-summarize/releases/tag/v0.1.0
