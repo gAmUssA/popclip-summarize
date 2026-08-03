@@ -19,16 +19,18 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags must be present for `git describe`
 
       - name: Validate config, scripts, and permissions
         run: make check
 
-      - name: Build distributable package
+      - name: Build versioned package
         run: make package
 
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: AISummarize.popclipextz
-          path: dist/AISummarize.popclipextz
+          name: AISummarize-popclipextz
+          path: dist/*.popclipextz
           if-no-files-found: error

@@ -32,7 +32,8 @@ make install     # hands the package to PopClip, which prompts to install
 
 Or double-click `AISummarize.popclipext` in Finder.
 
-**From a release:** download the `.popclipextz` file and double-click it.
+**From a release:** download the latest `.popclipextz` from
+[Releases](https://github.com/gAmUssA/popclip-summarize/releases) and double-click it.
 
 PopClip will warn that the extension is not signed — that is expected for a
 self-built extension. Signing is only available to Pilotmoon.
@@ -127,11 +128,31 @@ Contracts worth knowing if you edit these files:
 make check        # validate YAML, JS syntax, Swift syntax, and file permissions
 make check-full   # adds a Swift typecheck and a live on-device smoke test
 make install      # install into PopClip
-make package      # build dist/AISummarize.popclipextz for distribution
+make version      # print the version this build would produce
+make package      # build dist/AISummarize-<version>.popclipextz
 ```
 
 `make check` runs in CI on every push. `make check-full` requires macOS 26 with
 Apple Intelligence enabled, so it is a local-only target.
+
+### Releasing
+
+The version comes from the git tag — PopClip's config format has no extension
+version field, so there is nothing to bump in `Config.yaml`. Untagged builds are
+named after the short commit sha so a local package is never mistaken for a release.
+
+```sh
+make release V=0.2.0
+```
+
+That checks the working tree is clean and that `CHANGELOG.md` has a matching
+`## [0.2.0]` section, then tags and pushes. Pushing the tag triggers
+`.github/workflows/release.yml`, which validates, builds
+`AISummarize-0.2.0.popclipextz`, and publishes a GitHub Release with that
+changelog section as the notes.
+
+Releases rather than GitHub Packages: Packages only hosts container, npm, and
+Maven-style artifacts, not arbitrary zips.
 
 ## License
 

@@ -1,6 +1,10 @@
 EXT     := AISummarize.popclipext
 DIST    := dist
-PACKAGE := $(DIST)/AISummarize.popclipextz
+
+# Version comes from the git tag (v1.2.3 -> 1.2.3). Untagged builds get the
+# short commit sha so a local package is never mistaken for a release.
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//' || echo dev)
+PACKAGE := $(DIST)/AISummarize-$(VERSION).popclipextz
 
 .DEFAULT_GOAL := help
 
@@ -43,12 +47,26 @@ install: check ## Install the extension into PopClip
 	@open -a PopClip $(EXT)
 	@echo "==> handed to PopClip — confirm the install prompt"
 
+.PHONY: version
+version: ## Print the version this build would produce
+	@echo $(VERSION)
+
 .PHONY: package
-package: check ## Build a distributable .popclipextz
+package: check ## Build a versioned, distributable .popclipextz
 	@mkdir -p $(DIST)
-	@rm -f $(PACKAGE)
-	@cd . && zip -r -q -X $(PACKAGE) $(EXT) -x '*.DS_Store'
+	@rm -f $(DIST)/*.popclipextz
+	@zip -r -q -X $(PACKAGE) $(EXT) -x '*.DS_Store'
 	@echo "==> built $(PACKAGE)"
+
+.PHONY: release
+release: ## Tag and push a release (make release V=0.2.0)
+	@test -n "$(V)" || (echo "usage: make release V=0.2.0" && exit 1)
+	@git diff --quiet || (echo "working tree is dirty — commit first" && exit 1)
+	@grep -q "^## \[$(V)\]" CHANGELOG.md \
+		|| (echo "CHANGELOG.md has no '## [$(V)]' section — add it first" && exit 1)
+	@git tag -a "v$(V)" -m "v$(V)"
+	@git push origin "v$(V)"
+	@echo "==> pushed tag v$(V); GitHub Actions will publish the release"
 
 .PHONY: clean
 clean: ## Remove build artifacts

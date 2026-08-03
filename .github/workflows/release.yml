@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags must be present for `git describe`
+
+      - name: Validate extension
+        run: make check
+
+      - name: Build versioned package
+        run: |
+          make package
+          ls -l dist/
+
+      - name: Extract this version's changelog section
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # Pull the body of "## [x.y.z]" up to the next "## " heading.
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { grab = 1; next }
+            grab && /^## / { exit }
+            grab { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog section for $version; falling back to generated notes."
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ steps.notes.outputs.generated }}" = "true" ]; then
+            gh release create "$GITHUB_REF_NAME" dist/*.popclipextz \
+              --title "$GITHUB_REF_NAME" --generate-notes
+          else
+            gh release create "$GITHUB_REF_NAME" dist/*.popclipextz \
+              --title "$GITHUB_REF_NAME" --notes-file release-notes.md
+          fi
