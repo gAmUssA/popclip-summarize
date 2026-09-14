@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-14
+
 ### Added
 
 - **Experimental: summarize with your Claude plan.** Set **Claude › Backend** to
@@ -23,14 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the API). Slower than the API (about 5 seconds) and counts against your plan's
   Codex limits. Off by default.
 
-### Fixed
-
-- If the summary window fails to open, the action now says so (the summary is
-  still on the clipboard) instead of silently showing nothing. Launch errors are
-  logged next to the compiled helpers.
-- Full-screen large type now scrolls when a summary is taller than the screen;
-  the rest used to be cut off.
-
 ### Changed
 
 - Declares macOS 13 as the minimum (the cloud engines need it; the README's
@@ -42,6 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The extension has its own original icon, instead of borrowing the Claude
   action's. The Apple Intelligence action uses an original on-device icon:
   Apple restricts the Apple logo symbol to Sign in with Apple.
+
+### Fixed
+
+- If the summary window fails to open, the action now says so (the summary is
+  still on the clipboard) instead of silently showing nothing. Launch errors are
+  logged next to the compiled helpers.
+- Full-screen large type now scrolls when a summary is taller than the screen;
+  the rest used to be cut off.
 
 ## [0.5.0] - 2026-09-14
 
@@ -216,7 +218,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make check` validation of the config, both scripts, and the executable bit,
   wired into CI.
 
-[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.2.0...v0.3.0
