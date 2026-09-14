@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The extension settings end with a heading showing the installed version, so a
   bug report can name the build. `make release` and the release workflow refuse
   a tag that doesn't match it.
+- On Intel Macs or macOS before 26, the Apple Intelligence action now says so
+  immediately instead of compiling its helper first.
 
 ### Security
 
