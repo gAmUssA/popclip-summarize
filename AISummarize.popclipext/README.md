@@ -17,7 +17,7 @@ Intelligence on your Mac.
 - For **Apple Intelligence:** macOS 26 or later on Apple silicon, with Apple
   Intelligence turned on in *System Settings › Apple Intelligence & Siri*.
 
-Tested on macOS 26.
+Needs macOS 13 or later for the cloud actions. Tested on macOS 26.
 
 ## Actions
 

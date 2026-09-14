@@ -33,6 +33,15 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 	@for f in $(EXT)/*.sh; do bash -n "$$f" || exit 1; done
 	@echo "==> Swift sources parse"
 	@for f in $(EXT)/*.swift; do swiftc -parse "$$f" >/dev/null || exit 1; done
+	@echo "==> engines and viewer build for the declared minimum macOS"
+	@# Users compile on their own Mac, so the promise in `macos version` holds
+	@# only if nothing newer sneaks in. Apple Intelligence is macOS 26 by design
+	@# and gated in its wrapper before it ever compiles.
+	@floor="$$(ruby -ryaml -e 'puts YAML.load_file("$(EXT)/Config.yaml")["macos version"]')"; \
+	for f in $(EXT)/claude-summarize.swift $(EXT)/responses-summarize.swift $(EXT)/summary-window.swift; do \
+		swiftc -typecheck -target "$$(uname -m)-apple-macos$$floor" "$$f" 2>&1 | grep -m3 error: \
+			&& echo "    FAIL: $$f needs a newer macOS than $$floor" && exit 1; \
+	done; echo "    macOS $$floor"
 	@echo "==> action scripts are executable with a shebang"
 	@# PopClip runs a `shell script file` directly, so it needs both — the
 	@# wrappers are the only files it launches. lib.sh is sourced, not run.

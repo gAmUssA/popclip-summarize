@@ -1,10 +1,11 @@
 ---
 # popclip-summarize-7zav
 title: Trademark review of bundled provider marks
-status: todo
+status: in-progress
 type: task
+priority: normal
 created_at: 2026-09-14T21:26:05Z
-updated_at: 2026-09-14T21:26:05Z
+updated_at: 2026-09-14T22:42:57Z
 parent: popclip-summarize-ctrs
 ---
 

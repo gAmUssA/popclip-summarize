@@ -1,11 +1,11 @@
 ---
 # popclip-summarize-7mb7
 title: Provider-neutral top-level extension icon
-status: todo
+status: in-progress
 type: feature
 priority: high
 created_at: 2026-09-14T21:26:05Z
-updated_at: 2026-09-14T21:26:05Z
+updated_at: 2026-09-14T22:42:57Z
 parent: popclip-summarize-ctrs
 ---
 

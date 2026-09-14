@@ -5,7 +5,12 @@ shellScriptRationale: >-
   FoundationModels, neither of which PopClip's JavaScript API can do. The engines
   are readable Swift source, compiled locally on first use; no binaries ship.
 description: Summarize the selected text with Claude, ChatGPT, or Grok (cloud), or Apple Intelligence (on-device).
+# 4586: every config feature used here predates it (secret options arrived in
+# 4508); verified working on 5155. macOS 13: the cloud engines use Duration and
+# ContinuousClock, and `make check` typechecks them against that target. The
+# Apple Intelligence action separately requires macOS 26 at runtime.
 popclip version: 4586
+macos version: "13.0"
 entitlements: [network]
 
 options:

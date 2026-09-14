@@ -23,7 +23,8 @@ relearning anything.
 
 ## Requirements
 
-- macOS 10.15+ and [PopClip](https://www.popclip.app/) build **4586** or later.
+- macOS **13** or later and [PopClip](https://www.popclip.app/) build **4586** or later
+  (tested on PopClip 2025.9.2, build 5155, and macOS 26).
 - The **Xcode Command Line Tools** (`xcode-select --install`). The engines and
   the result window are Swift, compiled once into `~/Library/Caches` on first use.
 - **Claude action:** an [Anthropic API key](https://console.anthropic.com/settings/keys).
