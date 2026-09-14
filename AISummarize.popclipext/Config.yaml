@@ -182,7 +182,7 @@ options:
   # `make release` refuses to tag unless this matches the release version.
   - identifier: versionhead
     type: heading
-    label: AI Summarize 0.4.0 · github.com/gAmUssA/popclip-summarize
+    label: AI Summarize 0.5.0 · github.com/gAmUssA/popclip-summarize
 
 # All actions are shell scripts: the result panel is AppKit and the on-device
 # engine is FoundationModels, both native code PopClip's JavaScript can't run.

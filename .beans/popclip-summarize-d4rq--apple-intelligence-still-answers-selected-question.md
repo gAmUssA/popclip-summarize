@@ -5,8 +5,8 @@ status: todo
 type: bug
 priority: low
 created_at: 2026-09-14T21:38:16Z
-updated_at: 2026-09-14T21:38:16Z
-parent: popclip-summarize-xngr
+updated_at: 2026-09-14T22:31:36Z
+parent: popclip-summarize-s09a
 ---
 
 After the prompt-fidelity change, the on-device model still answers a selected question (4/4) instead of summarizing what it asks — sometimes with wrong facts. Cloud engines are fixed.

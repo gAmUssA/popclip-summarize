@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-14
+
 ### Added
 
 - **Automatic retries for cloud engines.** Claude, ChatGPT, and Grok retry
@@ -20,6 +22,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a tag that doesn't match it.
 - On Intel Macs or macOS before 26, the Apple Intelligence action now says so
   immediately instead of compiling its helper first.
+
+### Changed
+
+- **Summaries no longer answer or obey the selected text.** The prompt now
+  frames the selection as material inside `<source>` tags and forbids facts the
+  source doesn't contain. On a question like "What is the capital of Australia,
+  and why…?", every cloud engine used to answer it, inventing dates; all now
+  describe what it asks. Selected requests ("write a haiku…") are summarized
+  instead of carried out, on all four engines. Apple Intelligence still tends to
+  answer direct questions.
+- Clearer Claude failures: a refusal now says Claude declined (with the reason
+  when given), and a non-JSON or malformed response is reported as such instead
+  of "Claude returned an empty summary." ChatGPT and Grok report malformed
+  responses the same way, and every cloud engine says when a provider didn't respond
+  in time.
+- The Apple Intelligence prompt now matches the cloud engines' exactly (it was
+  missing the no-surrounding-quotes rule). `make check` now fails when option
+  names, default models, or the prompt drift between Config, wrappers, and
+  engines.
 
 ### Security
 
@@ -40,25 +61,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The extension now carries its own `LICENSE` and a `THIRD_PARTY_NOTICES.txt`
   (icon sources, exact modifications, trademark notice), so both survive in
   downloads that omit the README.
-
-### Changed
-
-- **Summaries no longer answer or obey the selected text.** The prompt now
-  frames the selection as material inside `<source>` tags and forbids facts the
-  source doesn't contain. On a question like "What is the capital of Australia,
-  and why…?", every cloud engine used to answer it, inventing dates; all now
-  describe what it asks. Selected requests ("write a haiku…") are summarized
-  instead of carried out, on all four engines. Apple Intelligence still tends to
-  answer direct questions.
-- Clearer Claude failures: a refusal now says Claude declined (with the reason
-  when given), and a non-JSON or malformed response is reported as such instead
-  of "Claude returned an empty summary." ChatGPT and Grok report malformed
-  responses the same way, and every cloud engine says when a provider didn't respond
-  in time.
-- The Apple Intelligence prompt now matches the cloud engines' exactly (it was
-  missing the no-surrounding-quotes rule). `make check` now fails when option
-  names, default models, or the prompt drift between Config, wrappers, and
-  engines.
+- The extension now includes its own user guide (`README.md`) covering setup,
+  privacy — what each cloud action sends and to whom — and troubleshooting.
+- `Config.yaml` declares a `shellScriptRationale` explaining why the actions are
+  shell scripts (a native AppKit panel and on-device FoundationModels). Comments
+  and docs no longer claim PopClip's JavaScript can't start a subprocess.
 
 ## [0.4.0] - 2026-09-14
 
@@ -173,7 +180,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make check` validation of the config, both scripts, and the executable bit,
   wired into CI.
 
-[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.1.0...v0.2.0
