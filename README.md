@@ -197,18 +197,24 @@ Apple Intelligence enabled, so it is a local-only target.
 
 ### Releasing
 
-The version comes from the git tag — PopClip's config format has no extension
-version field, so there is nothing to bump in `Config.yaml`. Untagged builds are
-named after the short commit sha so a local package is never mistaken for a release.
+The version comes from the git tag; PopClip's config format has no extension
+version field. The one place it is written by hand is the `versionhead` heading
+at the foot of the settings, so users can tell which build they have. Untagged
+builds are named after the short commit sha so a local package is never mistaken
+for a release.
+
+Before releasing, add a `## [0.5.0]` section to `CHANGELOG.md` and set the
+heading's label in `Config.yaml` to the new version. Then:
 
 ```sh
-make release V=0.2.0
+make release V=0.5.0
 ```
 
-That checks the working tree is clean and that `CHANGELOG.md` has a matching
-`## [0.2.0]` section, then tags and pushes. Pushing the tag triggers
+That checks the working tree is clean, `V` looks like `x.y.z`, the tag doesn't
+exist yet, the changelog section exists, and the settings heading shows `V`, then
+tags and pushes. The release workflow re-checks the heading against the tag. Pushing the tag triggers
 `.github/workflows/release.yml`, which validates, builds
-`AISummarize-0.2.0.popclipextz`, and publishes a GitHub Release with that
+`AISummarize-0.5.0.popclipextz`, and publishes a GitHub Release with that
 changelog section as the notes.
 
 Releases rather than GitHub Packages: Packages only hosts container, npm, and

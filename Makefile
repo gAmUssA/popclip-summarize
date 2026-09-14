@@ -102,6 +102,8 @@ release: ## Tag and push a release (make release V=0.2.0)
 		|| (echo "tag v$(V) already exists" && exit 1)
 	@grep -q "^## \[$(V)\]" CHANGELOG.md \
 		|| (echo "CHANGELOG.md has no '## [$(V)]' section — add it first" && exit 1)
+	@test "$$(ruby scripts/config-version.rb)" = "$(V)" \
+		|| (echo "Config.yaml's version heading says $$(ruby scripts/config-version.rb), not $(V) — update it first" && exit 1)
 	@git tag -a "v$(V)" -m "v$(V)"
 	@git push origin "v$(V)"
 	@echo "==> pushed tag v$(V); GitHub Actions will publish the release"

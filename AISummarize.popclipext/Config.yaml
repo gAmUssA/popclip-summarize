@@ -174,6 +174,12 @@ options:
     description: >-
       Needs an xAI API key. Turn this off if you don't use Grok.
 
+  # Shown at the foot of the settings so a bug report can name the build.
+  # `make release` refuses to tag unless this matches the release version.
+  - identifier: versionhead
+    type: heading
+    label: AI Summarize 0.4.0 · github.com/gAmUssA/popclip-summarize
+
 # All actions are shell scripts because they present the result in a native
 # panel of their own, and PopClip's JavaScript environment cannot launch one.
 # Neither declares an `after:` key — the wrapper does its own delivering.

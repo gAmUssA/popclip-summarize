@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   overall limit. Bad keys, unknown models, billing problems, and OpenAI's
   out-of-credit 429 are never retried. When a server asks for a long wait, the
   message says roughly how long.
+- The extension settings end with a heading showing the installed version, so a
+  bug report can name the build. `make release` and the release workflow refuse
+  a tag that doesn't match it.
 
 ### Changed
 

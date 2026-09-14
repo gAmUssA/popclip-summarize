@@ -30,6 +30,11 @@ jobs:
             exit 1
           fi
           echo "version check ok: $actual"
+          shown="$(ruby scripts/config-version.rb)"
+          if [ "$expected" != "$shown" ]; then
+            echo "Config.yaml's settings heading shows '$shown', not '$expected'." >&2
+            exit 1
+          fi
 
       - name: Build versioned package
         run: |
