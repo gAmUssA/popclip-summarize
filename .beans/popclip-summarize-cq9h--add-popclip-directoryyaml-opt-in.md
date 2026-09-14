@@ -1,11 +1,11 @@
 ---
 # popclip-summarize-cq9h
 title: Add popclip-directory.yaml opt-in
-status: todo
+status: in-progress
 type: task
 priority: high
 created_at: 2026-09-14T21:26:05Z
-updated_at: 2026-09-14T21:26:05Z
+updated_at: 2026-09-14T23:52:43Z
 parent: popclip-summarize-japp
 ---
 

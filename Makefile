@@ -81,6 +81,12 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 			abort "action #{a["title"]} requires undeclared option #{id}" unless ids.include?(id) } }'
 	@echo "==> Config, wrappers, and engines agree (options, default models, prompt)"
 	@ruby scripts/check-consistency.rb
+	@echo "==> popclip-directory.yaml opts this package in with a v tag prefix"
+	@ruby -ryaml -e 'd = YAML.load_file("popclip-directory.yaml"); \
+		inc = Array(d["include"]); \
+		abort "    FAIL: include does not cover $(EXT)" unless inc.any? { |g| File.fnmatch(g, "$(EXT)") }; \
+		abort "    FAIL: versionPrefix must be \"v\" to match make release tags" unless d["versionPrefix"] == "v"; \
+		puts "    include #{inc.join(", ")}, prefix #{d["versionPrefix"]}"'
 	@echo "==> all checks passed"
 
 .PHONY: check-full

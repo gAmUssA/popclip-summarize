@@ -214,6 +214,11 @@ Apple Intelligence enabled, so it is a local-only target.
 
 ### Releasing
 
+Releases are also submissions to the PopClip Directory: `popclip-directory.yaml`
+opts `AISummarize.popclipext` in, and the PopClip Directory GitHub app turns each
+pushed `v` tag into a submission (a **Submission Check** appears on the tagged
+commit). Only extension files that changed since the last tag are re-reviewed.
+
 The version comes from the git tag; PopClip's config format has no extension
 version field. The one place it is written by hand is the `versionhead` heading
 at the foot of the settings, so users can tell which build they have. Untagged

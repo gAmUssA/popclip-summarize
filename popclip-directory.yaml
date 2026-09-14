@@ -1,0 +1,5 @@
+# PopClip Directory opt-in: https://www.popclip.app/extensions/submit
+# With the PopClip Directory GitHub app installed on this repository, pushing a
+# version tag (v1.2.3) submits the changed extension below for review.
+include: AISummarize.popclipext
+versionPrefix: v
