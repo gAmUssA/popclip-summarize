@@ -49,12 +49,13 @@ build_cached() {
     printf '%s' "$binary"
 }
 
-# Run a summarization engine and print its summary, preserving its exit status
+# Run a summarization engine (with any extra arguments) and print its summary, preserving its exit status
 # so PopClip still sees exit code 2 (open settings) and the stderr message.
 run_engine() {
     local binary="$1" output status
+    shift
     set +e
-    output="$("$binary")"
+    output="$("$binary" "$@")"
     status=$?
     set -e
     [[ $status -eq 0 ]] || exit $status

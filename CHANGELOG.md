@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-14
+
+### Added
+
+- **Summarize (Grok)** — a fourth action backed by xAI's Responses API, with a
+  Keychain-stored key, a model picker (Grok 4.3, 4.5, 4.6; 4.3 by default), a
+  custom model override, and a **Show Grok action** setting. xAI's flat error
+  bodies and its HTTP 400 for a bad key or unknown model open the settings pane
+  like the other engines.
+
+### Fixed
+
+- **Apple Intelligence no longer summarizes only part of a long selection.**
+  Selections over 6,000 characters used to be cut silently, so the summary
+  looked complete while later text was ignored. The action now refuses them
+  and suggests selecting less or using a cloud engine.
+- `make release` now refuses a tree with staged-only or untracked changes
+  (`git diff --quiet` missed both), a malformed version, or an existing tag.
+
+### Changed
+
+- The OpenAI engine is now `responses-summarize.swift --provider openai|xai`,
+  shared by the ChatGPT and Grok actions.
+- The Claude and ChatGPT actions use the Anthropic and OpenAI marks as their
+  icons (from OpenUsage, MIT) instead of generic SF Symbols; Grok uses xAI's.
+
 ## [0.3.0] - 2026-09-14
 
 ### Added
@@ -94,7 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make check` validation of the config, both scripts, and the executable bit,
   wired into CI.
 
-[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gAmUssA/popclip-summarize/releases/tag/v0.1.0

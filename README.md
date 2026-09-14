@@ -2,12 +2,13 @@
 
 Select text anywhere on macOS, click **Summarize**, get a summary.
 
-Three engines, one extension:
+Four engines, one extension:
 
 | Action | Engine | Needs | Cost | Privacy |
 |---|---|---|---|---|
 | **Summarize (Claude)** | Anthropic Messages API | API key, network | ~$0.002 / summary on Haiku 4.5 | Text is sent to Anthropic |
 | **Summarize (ChatGPT)** | OpenAI Responses API | API key, network | ~$0.0004 / summary on GPT-5.6 Luna | Text is sent to OpenAI (with `store: false`) |
+| **Summarize (Grok)** | xAI Responses API | API key, network | ~$0.002 / summary on Grok 4.3 | Text is sent to xAI (with `store: false`) |
 | **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free | Nothing leaves the Mac |
 
 All actions honor the same **Style** and **Extra Instructions** settings and show
@@ -19,11 +20,12 @@ relearning anything.
 ## Requirements
 
 - macOS 10.15+ and [PopClip](https://www.popclip.app/) build **4586** or later.
-- The **Xcode Command Line Tools** (`xcode-select --install`). Both engines and
+- The **Xcode Command Line Tools** (`xcode-select --install`). The engines and
   the result window are Swift, compiled once into `~/Library/Caches` on first use.
 - **Claude action:** an [Anthropic API key](https://console.anthropic.com/settings/keys).
 - **ChatGPT action:** an [OpenAI API key](https://platform.openai.com/api-keys).
   A ChatGPT Plus/Pro subscription does not include API access; the key is billed separately.
+- **Grok action:** an [xAI API key](https://console.x.ai).
 - **Apple Intelligence action:** macOS **26** or later on Apple silicon, with
   Apple Intelligence enabled in *System Settings › Apple Intelligence & Siri*.
   On any other Mac, turn the action off in the extension settings.
@@ -56,11 +58,15 @@ Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 | **ChatGPT › API Key** | — | Keychain-backed, like the Claude key. ChatGPT action only. |
 | **ChatGPT › Model** | `gpt-5.6-luna` | Luna is the fastest and cheapest; Terra, Sol, and GPT-6 Astra trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on GPT-5.6, `low` on GPT-6). |
 | **ChatGPT › Custom Model** | — | Any OpenAI model ID usable with the Responses API. Overrides **Model**. IDs outside `gpt-5.6*` / `gpt-6*` are sent without a reasoning setting, so non-reasoning models such as `gpt-4.1-mini` work too. |
+| **Grok › API Key** | — | Keychain-backed. Grok action only. |
+| **Grok › Model** | `grok-4.3` | Grok 4.3 is the fastest and cheapest; 4.5 and 4.6 trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on 4.3, `low` on 4.5 and 4.6). |
+| **Grok › Custom Model** | — | Any xAI model ID usable with the Responses API. Overrides **Model**; IDs outside `grok-4.3*` / `grok-4.5*` / `grok-4.6*` are sent without a reasoning setting. |
 | **Style** | Concise paragraph | Also: bullet points, or a one-line TL;DR. Applies to all engines. |
 | **Extra Instructions** | — | Appended to the prompt for every engine. e.g. `Reply in French.` |
 | **Result** | Summary window | The floating panel, full-screen large type, or clipboard-only. Applies to all engines. |
 | **Show Apple Intelligence action** | On | Turn off to hide the action on Macs without Apple Intelligence. |
 | **Show ChatGPT action** | On | Turn off if you have no OpenAI key. |
+| **Show Grok action** | On | Turn off if you have no xAI key. |
 
 ### Reading the summary
 
@@ -87,7 +93,8 @@ Set **Result** to *Copy to clipboard only* if you would rather have no window at
 Haiku 4.5 is $1.00 per million input tokens and $5.00 per million output tokens.
 Summarizing a ~1,000-word article costs roughly **$0.002** — about 500 summaries
 per dollar. GPT-5.6 Luna is $0.20 / $1.20 per million tokens — roughly **$0.0004**
-for the same article. The Apple Intelligence action is free.
+for the same article, and Grok 4.3 is $1.25 / $2.50 — roughly **$0.002**.
+The Apple Intelligence action is free.
 
 ## Troubleshooting
 
@@ -101,14 +108,16 @@ or out of credit. Check it at [console.anthropic.com](https://console.anthropic.
 check the key and billing at [platform.openai.com](https://platform.openai.com/api-keys).
 API usage is billed separately from a ChatGPT subscription.
 
-**"Unknown model" on the ChatGPT action** — the Custom Model ID is mistyped, or
-your OpenAI organization has no access to it.
+**"xAI rejected the API key"** — check the key at [console.x.ai](https://console.x.ai).
+
+**"Unknown model" on the ChatGPT or Grok action** — the Custom Model ID is mistyped, or
+your account has no access to it.
 
 **"Apple Intelligence is turned off"** — enable it in *System Settings › Apple
 Intelligence & Siri*, then try again.
 
 **"This Mac does not support Apple Intelligence"** — you need macOS 26+ on Apple
-silicon. Turn the action off in the extension settings and use Claude or ChatGPT instead.
+silicon. Turn the action off in the extension settings and use a cloud engine instead.
 
 **The first summary after installing or updating is slow** — the Swift helpers
 compile into `~/Library/Caches/io.gamov.popclip.extension.ai-summarize` on first
@@ -122,22 +131,25 @@ that is the on-device model loading into memory on first use. It stays warm afte
 `~/Library/Caches/io.gamov.popclip.extension.ai-summarize/`.
 
 **"Selection is too long for the on-device model"** — the on-device context window
-is small (4K tokens on macOS 26). The script caps input at 6,000 characters. Use
-the Claude or ChatGPT action for long documents.
+is small (4K tokens on macOS 26), so the action refuses selections over 6,000
+characters rather than quietly summarizing only the beginning. Select less, or use
+a cloud engine for long documents.
 
 ## How it works
 
 ```
 AISummarize.popclipext/
-├── Config.yaml               # extension metadata, settings, and the three actions
+├── Config.yaml               # extension metadata, settings, and the four actions
 ├── summarize-claude.sh       # action → build, run the Claude engine, present
 ├── summarize-openai.sh       # action → build, run the ChatGPT engine, present
+├── summarize-grok.sh        # action → build, run the Grok engine, present
 ├── summarize-apple.sh        # action → build, run the on-device engine, present
 ├── lib.sh                    # shared: build cache + result delivery
 ├── claude-summarize.swift    # engine → Anthropic Messages API
-├── openai-summarize.swift    # engine → OpenAI Responses API
+├── responses-summarize.swift # engine → Responses API, for OpenAI and xAI (--provider)
 ├── apple-intelligence.swift  # engine → FoundationModels (on-device)
-└── summary-window.swift      # the result panel and large type (AppKit)
+├── summary-window.swift      # the result panel and large type (AppKit)
+└── claude.svg, openai.svg, grok.svg  # action icons (see License)
 ```
 
 All actions are `shell script file` actions. That is forced by the window:
@@ -206,4 +218,9 @@ Maven-style artifacts, not arbitrary zips.
 
 MIT — see [LICENSE](LICENSE).
 
-Not affiliated with Pilotmoon Software, Anthropic, or OpenAI.
+Not affiliated with Pilotmoon Software, Anthropic, OpenAI, or xAI.
+
+The Claude, OpenAI, and Grok marks in `claude.svg`, `openai.svg`, and `grok.svg` come from
+[OpenUsage](https://github.com/robinebers/openusage) (MIT, Copyright (c) 2026
+Robin Ebers) and are trademarks of Anthropic, OpenAI, and xAI respectively. They are
+used only to identify which service each action calls.

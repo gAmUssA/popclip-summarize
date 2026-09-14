@@ -3,7 +3,7 @@ DIST    := dist
 
 # The scripts PopClip launches directly, as opposed to the sourced library and
 # the Swift sources, which are compiled to a cache on first use.
-ACTIONS := $(EXT)/summarize-claude.sh $(EXT)/summarize-openai.sh $(EXT)/summarize-apple.sh
+ACTIONS := $(EXT)/summarize-claude.sh $(EXT)/summarize-openai.sh $(EXT)/summarize-grok.sh $(EXT)/summarize-apple.sh
 
 # Version comes from the git tag (v1.2.3 -> 1.2.3). Untagged builds get the
 # short commit sha so a local package is never mistaken for a release.
@@ -89,7 +89,15 @@ package: check ## Build a versioned, distributable .popclipextz
 .PHONY: release
 release: ## Tag and push a release (make release V=0.2.0)
 	@test -n "$(V)" || (echo "usage: make release V=0.2.0" && exit 1)
-	@git diff --quiet || (echo "working tree is dirty — commit first" && exit 1)
+	@echo "$(V)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' \
+		|| (echo "V must look like 1.2.3, got '$(V)'" && exit 1)
+	@# --porcelain, not `git diff --quiet`: the latter ignores staged-only and
+	@# untracked files, so a release could be tagged from a tree that differs
+	@# from what was committed.
+	@test -z "$$(git status --porcelain)" \
+		|| (echo "working tree is dirty (staged, unstaged, or untracked) — commit first" && git status --short && exit 1)
+	@! git rev-parse -q --verify "refs/tags/v$(V)" >/dev/null \
+		|| (echo "tag v$(V) already exists" && exit 1)
 	@grep -q "^## \[$(V)\]" CHANGELOG.md \
 		|| (echo "CHANGELOG.md has no '## [$(V)]' section — add it first" && exit 1)
 	@git tag -a "v$(V)" -m "v$(V)"

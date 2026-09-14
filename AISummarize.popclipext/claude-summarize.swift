@@ -80,7 +80,7 @@ default:
 // than 3 sentences" was violated in 31 of 40 runs and, on the on-device model,
 // pushed verbatim copying up (64% -> 85%) as it padded to hit the shape. The
 // rewrite clause is what suppresses copying: 10% -> 0% on Claude, 64% -> 34%
-// on-device. Keep this block identical to the ones in openai-summarize.swift
+// on-device. Keep this block identical to the ones in responses-summarize.swift
 // and apple-intelligence.swift.
 var instructionLines = [
     "You are a summarization engine.",

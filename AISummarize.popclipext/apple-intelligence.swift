@@ -38,13 +38,16 @@ guard !selectedText.isEmpty else {
 // instructions and the generated summary.
 let maxInputCharacters = 6000
 
-var promptText = selectedText
-if promptText.count > maxInputCharacters {
-    promptText = String(promptText.prefix(maxInputCharacters))
-    FileHandle.standardError.write(
-        Data("note: input truncated to \(maxInputCharacters) characters\n".utf8)
+// Refuse rather than summarize a prefix: a summary of the first 6,000
+// characters reads as a summary of the whole selection, and whatever came
+// later would vanish without a trace. Never fall back to a cloud engine here —
+// this action's promise is that nothing leaves the Mac.
+guard selectedText.count <= maxInputCharacters else {
+    fail(
+        "Selection is too long for the on-device model (\(selectedText.count) characters, limit \(maxInputCharacters)). Select less text, or use a cloud engine."
     )
 }
+let promptText = selectedText
 
 let styleInstruction: String
 switch style {
@@ -63,7 +66,7 @@ default:
 // pushed verbatim copying up (64% -> 85%) as the model padded to hit the shape.
 // The rewrite clause is what suppresses copying: 64% -> 34% on-device, 10% -> 0%
 // on Claude. Keep this block identical to the ones in claude-summarize.swift
-// and openai-summarize.swift.
+// and responses-summarize.swift.
 var instructionLines = [
     "You are a summarization engine.",
     styleInstruction,

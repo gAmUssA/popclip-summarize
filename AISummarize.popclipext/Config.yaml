@@ -1,6 +1,6 @@
 name: AI Summarize
 identifier: io.gamov.popclip.extension.ai-summarize
-description: Summarize the selected text with Claude or ChatGPT (cloud), or Apple Intelligence (on-device).
+description: Summarize the selected text with Claude, ChatGPT, or Grok (cloud), or Apple Intelligence (on-device).
 popclip version: 4586
 entitlements: [network]
 
@@ -71,6 +71,40 @@ options:
       Optional. Any OpenAI model ID usable with the Responses API. Overrides
       the Model setting above.
 
+  - identifier: xaihead
+    type: heading
+    label: Grok
+
+  - identifier: xaikey
+    type: secret
+    label: API Key
+    description: >-
+      Create a key at https://console.x.ai
+      Stored in the macOS Keychain. Only the Grok action uses it.
+
+  - identifier: xaimodel
+    type: multiple
+    label: Model
+    default value: grok-4.3
+    values:
+      - grok-4.3
+      - grok-4.5
+      - grok-4.6
+    value labels:
+      - Grok 4.3 — fastest, cheapest
+      - Grok 4.5 — balanced
+      - Grok 4.6 — highest quality
+    description: >-
+      Reasoning is kept at the lowest effort each model allows; a summary
+      gains nothing from deliberation.
+
+  - identifier: xaicustommodel
+    type: string
+    label: Custom Model
+    description: >-
+      Optional. Any xAI model ID usable with the Responses API. Overrides the
+      Model setting above.
+
   - identifier: summaryhead
     type: heading
     label: Summary
@@ -92,7 +126,7 @@ options:
     type: string
     label: Extra Instructions
     description: >-
-      Optional. Appended to the prompt for both engines.
+      Optional. Appended to the prompt for every engine.
       Example: "Reply in French." or "Keep all product names verbatim."
 
   - identifier: output
@@ -111,7 +145,7 @@ options:
       The summary window is a floating panel you can select text in, resize,
       and dismiss with Escape. Full screen is large type: the text scaled up to
       fill the display, dismissed with Escape or a click. Every setting puts the
-      summary on the clipboard, so ⌘V works afterwards. Applies to both engines.
+      summary on the clipboard, so ⌘V works afterwards. Applies to every engine.
 
   - identifier: actionshead
     type: heading
@@ -131,21 +165,33 @@ options:
     label: Show ChatGPT action
     default value: true
     description: >-
-      Needs an OpenAI API key. Turn this off if you only use Claude.
+      Needs an OpenAI API key. Turn this off if you don't use ChatGPT.
+
+  - identifier: showxai
+    type: boolean
+    label: Show Grok action
+    default value: true
+    description: >-
+      Needs an xAI API key. Turn this off if you don't use Grok.
 
 # All actions are shell scripts because they present the result in a native
 # panel of their own, and PopClip's JavaScript environment cannot launch one.
 # Neither declares an `after:` key — the wrapper does its own delivering.
 actions:
   - title: Summarize (Claude)
-    icon: symbol:sparkles
+    icon: claude.svg
     shell script file: summarize-claude.sh
     requirements: [text]
 
   - title: Summarize (ChatGPT)
-    icon: symbol:bubble.left.and.text.bubble.right
+    icon: openai.svg
     shell script file: summarize-openai.sh
     requirements: [text, option-showopenai=1]
+
+  - title: Summarize (Grok)
+    icon: grok.svg
+    shell script file: summarize-grok.sh
+    requirements: [text, option-showxai=1]
 
   - title: Summarize (Apple Intelligence)
     icon: symbol:apple.logo
