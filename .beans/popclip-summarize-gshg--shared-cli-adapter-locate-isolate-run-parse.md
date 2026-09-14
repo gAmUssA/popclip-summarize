@@ -1,11 +1,11 @@
 ---
 # popclip-summarize-gshg
 title: 'Shared CLI adapter: locate, isolate, run, parse'
-status: todo
+status: in-progress
 type: feature
 priority: high
 created_at: 2026-09-14T22:22:38Z
-updated_at: 2026-09-14T22:22:38Z
+updated_at: 2026-09-14T23:08:59Z
 parent: popclip-summarize-b6e8
 ---
 
