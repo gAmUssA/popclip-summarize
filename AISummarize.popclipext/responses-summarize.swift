@@ -65,7 +65,7 @@ struct Provider {
 let providers: [String: Provider] = [
     "openai": Provider(
         company: "OpenAI",
-        product: "ChatGPT",
+        product: "OpenAI",
         apiURL: URL(string: "https://api.openai.com/v1/responses")!,
         keyOption: "OPENAIKEY",
         modelOption: "OPENAIMODEL",

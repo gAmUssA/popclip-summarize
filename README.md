@@ -7,7 +7,7 @@ Four engines, one extension:
 | Action                             | Engine                      | Needs                    | Cost                               | Privacy                                      |
 |------------------------------------|-----------------------------|--------------------------|------------------------------------|----------------------------------------------|
 | **Summarize (Claude)**             | Anthropic Messages API      | API key, network         | ~$0.002 / summary on Haiku 4.5     | Text is sent to Anthropic                    |
-| **Summarize (ChatGPT)**            | OpenAI Responses API        | API key, network         | ~$0.0004 / summary on GPT-5.6 Luna | Text is sent to OpenAI (with `store: false`) |
+| **Summarize (OpenAI)**            | OpenAI Responses API        | API key, network         | ~$0.0004 / summary on GPT-5.6 Luna | Text is sent to OpenAI (with `store: false`) |
 | **Summarize (Grok)**               | xAI Responses API           | API key, network         | ~$0.002 / summary on Grok 4.3      | Text is sent to xAI (with `store: false`)    |
 | **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free                               | Nothing leaves the Mac                       |
 
@@ -28,7 +28,7 @@ relearning anything.
 - The **Xcode Command Line Tools** (`xcode-select --install`). The engines and
   the result window are Swift, compiled once into `~/Library/Caches` on first use.
 - **Claude action:** an [Anthropic API key](https://console.anthropic.com/settings/keys).
-- **ChatGPT action:** an [OpenAI API key](https://platform.openai.com/api-keys).
+- **OpenAI action:** an [OpenAI API key](https://platform.openai.com/api-keys).
   A ChatGPT Plus/Pro subscription does not include API access; the key is billed separately.
 - **Grok action:** an [xAI API key](https://console.x.ai).
 - **Apple Intelligence action:** macOS **26** or later on Apple silicon, with
@@ -60,9 +60,9 @@ Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 | **API Key**                        | —                  | Stored in the macOS Keychain, not in preferences. Syncs via iCloud Keychain. Claude action only.                                                                                                         |
 | **Model**                          | `claude-haiku-4-5` | Haiku 4.5 is the fastest and cheapest; Sonnet 5 and Opus 5 are available for harder source material.                                                                                                     |
 | **Custom Model**                   | —                  | Any Anthropic model ID. Overrides **Model**.                                                                                                                                                             |
-| **ChatGPT › API Key**              | —                  | Keychain-backed, like the Claude key. ChatGPT action only.                                                                                                                                               |
-| **ChatGPT › Model**                | `gpt-5.6-luna`     | Luna is the fastest and cheapest; Terra, Sol, and GPT-6 Astra trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on GPT-5.6, `low` on GPT-6).                    |
-| **ChatGPT › Custom Model**         | —                  | Any OpenAI model ID usable with the Responses API. Overrides **Model**. IDs outside `gpt-5.6*` / `gpt-6*` are sent without a reasoning setting, so non-reasoning models such as `gpt-4.1-mini` work too. |
+| **OpenAI › API Key**              | —                  | Keychain-backed, like the Claude key. OpenAI action only.                                                                                                                                               |
+| **OpenAI › Model**                | `gpt-5.6-luna`     | Luna is the fastest and cheapest; Terra, Sol, and GPT-6 Astra trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on GPT-5.6, `low` on GPT-6).                    |
+| **OpenAI › Custom Model**         | —                  | Any OpenAI model ID usable with the Responses API. Overrides **Model**. IDs outside `gpt-5.6*` / `gpt-6*` are sent without a reasoning setting, so non-reasoning models such as `gpt-4.1-mini` work too. |
 | **Grok › API Key**                 | —                  | Keychain-backed. Grok action only.                                                                                                                                                                       |
 | **Grok › Model**                   | `grok-4.3`         | Grok 4.3 is the fastest and cheapest; 4.5 and 4.6 trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on 4.3, `low` on 4.5 and 4.6).                              |
 | **Grok › Custom Model**            | —                  | Any xAI model ID usable with the Responses API. Overrides **Model**; IDs outside `grok-4.3*` / `grok-4.5*` / `grok-4.6*` are sent without a reasoning setting.                                           |
@@ -70,7 +70,7 @@ Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 | **Extra Instructions**             | —                  | Appended to the prompt for every engine. e.g. `Reply in French.`                                                                                                                                         |
 | **Result**                         | Summary window     | The floating panel, full-screen large type, or clipboard-only. Applies to all engines.                                                                                                                   |
 | **Show Apple Intelligence action** | On                 | Turn off to hide the action on Macs without Apple Intelligence.                                                                                                                                          |
-| **Show ChatGPT action**            | On                 | Turn off if you have no OpenAI key.                                                                                                                                                                      |
+| **Show OpenAI action**            | On                 | Turn off if you have no OpenAI key.                                                                                                                                                                      |
 | **Show Grok action**               | On                 | Turn off if you have no xAI key.                                                                                                                                                                         |
 
 ### Reading the summary
@@ -115,7 +115,7 @@ API usage is billed separately from a ChatGPT subscription.
 
 **"xAI rejected the API key"** — check the key at [console.x.ai](https://console.x.ai).
 
-**"Unknown model" on the ChatGPT or Grok action** — the Custom Model ID is mistyped, or
+**"Unknown model" on the OpenAI or Grok action** — the Custom Model ID is mistyped, or
 your account has no access to it.
 
 **"Apple Intelligence is turned off"** — enable it in *System Settings › Apple
@@ -146,7 +146,7 @@ a cloud engine for long documents.
 AISummarize.popclipext/
 ├── Config.yaml               # extension metadata, settings, and the four actions
 ├── summarize-claude.sh       # action → build, run the Claude engine, present
-├── summarize-openai.sh       # action → build, run the ChatGPT engine, present
+├── summarize-openai.sh       # action → build, run the OpenAI engine, present
 ├── summarize-grok.sh        # action → build, run the Grok engine, present
 ├── summarize-apple.sh        # action → build, run the on-device engine, present
 ├── lib.sh                    # shared: build cache + result delivery
@@ -154,7 +154,8 @@ AISummarize.popclipext/
 ├── responses-summarize.swift # engine → Responses API, for OpenAI and xAI (--provider)
 ├── apple-intelligence.swift  # engine → FoundationModels (on-device)
 ├── summary-window.swift      # the result panel and large type (AppKit)
-├── claude.svg, openai.svg, grok.svg  # action icons (see License)
+├── summarize.svg, on-device.svg  # original icons: extension, Apple Intelligence action
+├── claude.svg, openai.svg, grok.svg  # provider action icons (see License)
 └── LICENSE, THIRD_PARTY_NOTICES.txt  # shipped inside the package
 ```
 

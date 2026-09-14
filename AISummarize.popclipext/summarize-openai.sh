@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# PopClip action: summarize the selection with ChatGPT, then present the result.
+# PopClip action: summarize the selection with OpenAI, then present the result.
 #
 set -euo pipefail
 
@@ -15,4 +15,4 @@ model="${POPCLIP_OPTION_OPENAICUSTOMMODEL:-}"
 # argument would not trip `set -e`, and the engine would run with no binary.
 engine="$(build_cached "${EXT_DIR}/responses-summarize.swift")"
 summary="$(run_engine "$engine" "OPENAIKEY OPENAIMODEL OPENAICUSTOMMODEL" --provider openai)"
-deliver "ChatGPT · ${model}" "$summary"
+deliver "OpenAI · ${model}" "$summary"

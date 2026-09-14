@@ -5,6 +5,12 @@ This package includes material from the project listed below. It is kept as
 a separate file because PopClip Directory downloads omit README files.
 
 
+Original artwork (not third-party)
+----------------------------------
+
+  summarize.svg, on-device.svg — drawn for this project; covered by LICENSE.
+
+
 OpenUsage — provider icon artwork
 ---------------------------------
 

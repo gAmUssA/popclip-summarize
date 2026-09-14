@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   10.15 claim was wrong), and `make check` verifies the engines still build for
   it.
 - Adds directory search keywords.
+- **The ChatGPT action is now "Summarize (OpenAI)"**, since it calls OpenAI's
+  API rather than ChatGPT. Saved keys and settings carry over.
+- The extension has its own original icon, instead of borrowing the Claude
+  action's. The Apple Intelligence action uses an original on-device icon:
+  Apple restricts the Apple logo symbol to Sign in with Apple.
 
 ## [0.5.0] - 2026-09-14
 

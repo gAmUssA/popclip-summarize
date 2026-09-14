@@ -1,7 +1,7 @@
 # AI Summarize
 
 Select text anywhere, click **Summarize**, and read a short summary in a floating
-panel next to the pointer. Choose Claude, ChatGPT, or Grok in the cloud, or Apple
+panel next to the pointer. Choose Claude, OpenAI, or Grok in the cloud, or Apple
 Intelligence on your Mac.
 
 ## Requirements
@@ -11,7 +11,7 @@ Intelligence on your Mac.
   each action runs. No prebuilt programs are included.
 - For each cloud action you use, an API key from that provider:
   - **Claude:** [Anthropic Console](https://console.anthropic.com/settings/keys)
-  - **ChatGPT:** [OpenAI Platform](https://platform.openai.com/api-keys). API use
+  - **OpenAI:** [OpenAI Platform](https://platform.openai.com/api-keys). API use
     is billed separately from a ChatGPT Plus or Pro subscription.
   - **Grok:** [xAI Console](https://console.x.ai)
 - For **Apple Intelligence:** macOS 26 or later on Apple silicon, with Apple
@@ -24,7 +24,7 @@ Needs macOS 13 or later for the cloud actions. Tested on macOS 26.
 | Action | Runs on | Cost |
 |---|---|---|
 | Summarize (Claude) | Anthropic's servers | ~$0.002 per 1,000-word article on Claude Haiku 4.5 |
-| Summarize (ChatGPT) | OpenAI's servers | ~$0.0004 on GPT-5.6 Luna |
+| Summarize (OpenAI) | OpenAI's servers | ~$0.0004 on GPT-5.6 Luna |
 | Summarize (Grok) | xAI's servers | ~$0.002 on Grok 4.3 |
 | Summarize (Apple Intelligence) | Your Mac | Free |
 
@@ -56,7 +56,7 @@ clipboard.
   model name, and that provider's API key to that provider only. Nothing is sent
   anywhere else, and one provider's key is never given to another provider's
   engine.
-- ChatGPT and Grok requests ask the provider not to store the request
+- OpenAI and Grok requests ask the provider not to store the request
   (`store: false`). Each provider's own data-retention policy still applies.
 - **Apple Intelligence** runs entirely on your Mac. Nothing leaves it.
 - The extension keeps no history. The summary is placed on the clipboard, and a
@@ -89,9 +89,11 @@ By [Viktor Gamov](https://github.com/gAmUssA). Source, issues, and changelog:
 [github.com/gAmUssA/popclip-summarize](https://github.com/gAmUssA/popclip-summarize).
 
 Provider icons come from [OpenUsage](https://github.com/robinebers/openusage)
-(MIT); see `THIRD_PARTY_NOTICES.txt`. Claude, ChatGPT, Grok, and Apple
+(MIT); see `THIRD_PARTY_NOTICES.txt`. Claude, OpenAI, Grok, and Apple
 Intelligence are trademarks of their owners. They are named here only to
-identify which service each action uses. This extension is not affiliated with
-Anthropic, OpenAI, xAI, Apple, or Pilotmoon Software.
+identify which service each action uses. Apple Intelligence is a trademark of
+Apple Inc. This extension is not affiliated with, sponsored, or endorsed by
+Anthropic, OpenAI, xAI, Apple, or Pilotmoon Software. The extension icon and the
+on-device icon are original artwork.
 
 MIT License. See `LICENSE`.
