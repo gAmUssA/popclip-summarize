@@ -172,7 +172,18 @@ let framedSelection = "Source text to summarize:\n<source>\n\(selectedText)\n</s
 
 // MARK: - Request
 
-var request = URLRequest(url: provider.apiURL, timeoutInterval: requestTimeout)
+/// Tests only: `AI_SUMMARIZE_TEST_API_URL` points the engine at a local fake
+/// server. Loopback hosts only, so a stray variable can never send the API key
+/// anywhere else.
+func testServerURL() -> URL? {
+    guard let value = environment["AI_SUMMARIZE_TEST_API_URL"],
+          let url = URL(string: value), url.scheme == "http",
+          ["127.0.0.1", "localhost"].contains(url.host ?? "")
+    else { return nil }
+    return url
+}
+
+var request = URLRequest(url: testServerURL() ?? provider.apiURL, timeoutInterval: requestTimeout)
 request.httpMethod = "POST"
 request.setValue("application/json", forHTTPHeaderField: "content-type")
 request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "authorization")
@@ -196,18 +207,157 @@ do {
     fail("Could not encode the request: \(error.localizedDescription)")
 }
 
-let data: Data
-let response: URLResponse
-do {
-    (data, response) = try await URLSession.shared.data(for: request)
-} catch {
-    fail(
-        "Could not reach the \(provider.company) API. Check your internet connection. (\(error.localizedDescription))"
-    )
+// MARK: - Retries
+
+// Same policy as claude-summarize.swift; keep the two in step.
+
+/// Seconds the whole request may take, across every attempt and wait. Kept
+/// well under a minute: a summary nobody is still waiting for is worthless.
+let overallDeadline: Duration = .seconds(45)
+let maxAttempts = 3
+
+/// The error `code` from either provider's error shape (see Response below).
+func errorCode(in data: Data) -> String {
+    let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+    return ((body["error"] as? [String: Any])?["code"] as? String) ?? (body["code"] as? String) ?? ""
 }
 
-let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
-let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+/// Statuses worth retrying: transient overload, rate limiting, server faults.
+/// OpenAI reports an exhausted balance as a 429 too — waiting won't fix that.
+func isRetryable(_ status: Int, _ data: Data) -> Bool {
+    guard [408, 409, 429, 500, 502, 503, 504].contains(status) else { return false }
+    return !(status == 429 && errorCode(in: data) == "insufficient_quota")
+}
+
+/// Transport failures worth retrying. Being offline is not one of them —
+/// waiting a second won't bring the network back.
+func isRetryable(_ error: URLError) -> Bool {
+    [.timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost,
+     .dnsLookupFailed, .secureConnectionFailed].contains(error.code)
+}
+
+/// The server's requested wait, from `retry-after` as seconds or an HTTP date.
+func retryAfter(_ response: HTTPURLResponse) -> Duration? {
+    guard let value = response.value(forHTTPHeaderField: "retry-after") else { return nil }
+    if let seconds = Double(value.trimmingCharacters(in: .whitespaces)), seconds.isFinite {
+        return clampedWait(seconds)
+    }
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+    guard let date = formatter.date(from: value) else { return nil }
+    return clampedWait(date.timeIntervalSinceNow)
+}
+
+/// A wait in seconds as a Duration, clamped to a day so a hostile or garbled
+/// header can't overflow the conversion. Anything past the deadline is
+/// rejected by the caller anyway.
+func clampedWait(_ seconds: Double) -> Duration {
+    .milliseconds(Int(min(max(0, seconds), 86_400) * 1000))
+}
+
+/// URLSession's timeout only bounds inactivity: a response that trickles in
+/// can outlive it indefinitely. Race the request against the deadline and
+/// cancel whichever loses.
+func fetch(_ request: URLRequest, until deadline: ContinuousClock.Instant) async throws -> (Data, URLResponse) {
+    try await withThrowingTaskGroup(of: (Data, URLResponse)?.self) { group in
+        group.addTask { try await session.data(for: request) }
+        group.addTask {
+            try await Task.sleep(until: deadline, clock: .continuous)
+            return nil
+        }
+        defer { group.cancelAll() }
+        guard let first = try await group.next(), let result = first else {
+            throw URLError(.timedOut)
+        }
+        return result
+    }
+}
+
+/// Refuses every redirect. Neither API redirects in normal operation, and
+/// following one would carry the API key and the selection to whatever host
+/// it names.
+final class NoRedirects: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        nil
+    }
+}
+let session = URLSession(configuration: .default, delegate: NoRedirects(), delegateQueue: nil)
+
+/// Exponential backoff with jitter: ~1s, then ~2s.
+func backoff(attempt: Int) -> Duration {
+    .milliseconds(Int(1000 * pow(2, Double(attempt - 1)) * Double.random(in: 0.5...1.5)))
+}
+
+let clock = ContinuousClock()
+let deadline = clock.now + overallDeadline
+
+var data = Data()
+var httpResponse: HTTPURLResponse?
+var lastTransportError: URLError?
+var requestedWait: Duration?
+var attempt = 0
+while true {
+    attempt += 1
+    let remaining = clock.now.duration(to: deadline)
+    guard remaining > .zero else { break }
+    // Each attempt's timeout shrinks to what's left, so the deadline holds
+    // even when the server simply stops answering.
+    let (wholeSeconds, attoseconds) = remaining.components
+    request.timeoutInterval = min(requestTimeout, Double(wholeSeconds) + Double(attoseconds) / 1e18)
+
+    var wait: Duration?
+    do {
+        let (body, response) = try await fetch(request, until: deadline)
+        data = body
+        httpResponse = response as? HTTPURLResponse
+        lastTransportError = nil
+        requestedWait = httpResponse.flatMap(retryAfter)
+        guard let http = httpResponse, isRetryable(http.statusCode, body), attempt < maxAttempts else { break }
+        wait = requestedWait ?? backoff(attempt: attempt)
+    } catch let error as URLError where isRetryable(error) {
+        lastTransportError = error
+        guard attempt < maxAttempts else { break }
+        wait = backoff(attempt: attempt)
+    } catch {
+        fail(
+            "Could not reach the \(provider.company) API. Check your internet connection. (\(error.localizedDescription))"
+        )
+    }
+
+    // A wait that would overrun the deadline is not worth starting; report the
+    // last failure instead of making the user watch a spinner for nothing.
+    guard let pause = wait, clock.now + pause < deadline else { break }
+    try? await Task.sleep(for: pause)
+}
+
+let attemptsNote = attempt > 1 ? " after \(attempt) attempts" : ""
+
+// The last attempt failed in transit (an earlier HTTP response, if any, is
+// stale), or no attempt got an answer at all.
+if let error = lastTransportError ?? (httpResponse == nil ? URLError(.unknown) : nil) {
+    if error.code == .timedOut {
+        fail("\(provider.company) didn't respond in time\(attemptsNote). Try again shortly.")
+    }
+    fail("Could not reach the \(provider.company) API\(attemptsNote). Check your internet connection.")
+}
+let status = httpResponse!.statusCode
+let parsed = try? JSONSerialization.jsonObject(with: data)
+let body = parsed as? [String: Any] ?? [:]
+
+/// "Try again in about 2 minutes" when the server said how long to wait.
+func waitHint() -> String {
+    guard let wait = requestedWait else { return "Wait a moment and try again." }
+    let seconds = Int(wait.components.seconds)
+    if seconds >= 3600 { return "Try again later." }
+    return seconds >= 90
+        ? "Try again in about \((seconds + 30) / 60) minutes."
+        : "Try again in about \(max(seconds, 1)) seconds."
+}
 
 // MARK: - Response
 
@@ -246,12 +396,21 @@ guard status == 200 else {
     case (429, "insufficient_quota"), (402, _):
         fail("Your \(provider.company) account is out of credit. \(apiMessage)")
     case (429, _):
-        fail("Rate limited by \(provider.company). Wait a moment and try again.")
+        fail("Rate limited by \(provider.company)\(attemptsNote). \(waitHint())")
     case (500...599, _):
-        fail("\(provider.company) is having trouble (HTTP \(status)). Try again shortly.")
+        fail("\(provider.company) is having trouble (HTTP \(status))\(attemptsNote). Try again shortly.")
     default:
         fail("\(provider.company) API error (HTTP \(status)). \(apiMessage)")
     }
+}
+
+// A 200 that isn't a Responses object is a protocol problem (a proxy, a
+// captive portal, an API change) — not the model having nothing to say.
+guard parsed is [String: Any] else {
+    fail("\(provider.company) returned a response that isn't JSON (HTTP 200). Try again; if it persists, check for a proxy or captive portal.")
+}
+guard body["output"] is [[String: Any]] else {
+    fail("\(provider.company) returned an unexpected response (no output). Try again shortly.")
 }
 
 // `output` interleaves reasoning items with the assistant message; only the

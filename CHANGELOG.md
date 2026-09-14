@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Automatic retries for cloud engines.** Claude, ChatGPT, and Grok retry
+  network hiccups, rate limits (429), overload (529), and server errors up to
+  three attempts, honoring the server's `Retry-After`, within a 45-second
+  overall limit. Bad keys, unknown models, billing problems, and OpenAI's
+  out-of-credit 429 are never retried. When a server asks for a long wait, the
+  message says roughly how long.
+
 ### Changed
 
 - **Summaries no longer answer or obey the selected text.** The prompt now
@@ -16,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   describe what it asks. Selected requests ("write a haiku…") are summarized
   instead of carried out, on all four engines. Apple Intelligence still tends to
   answer direct questions.
+- Clearer Claude failures: a refusal now says Claude declined (with the reason
+  when given), and a non-JSON or malformed response is reported as such instead
+  of "Claude returned an empty summary." ChatGPT and Grok report malformed
+  responses the same way, and every cloud engine says when a provider didn't respond
+  in time.
 
 ## [0.4.0] - 2026-09-14
 

@@ -5,7 +5,7 @@ status: completed
 type: feature
 priority: high
 created_at: 2026-09-14T21:23:52Z
-updated_at: 2026-09-14T21:38:16Z
+updated_at: 2026-09-14T21:38:39Z
 parent: popclip-summarize-xngr
 ---
 
@@ -33,4 +33,4 @@ Regression checks: TL;DR ≤25 words and bullets unchanged on all engines; Claud
 
 Tried and rejected: `@Generable` classify-then-summarize for Apple — it made Apple obey the embedded PINEAPPLE instruction 3/3.
 
-Follow-ups: popclip-summarize Apple-answers-questions bean; Claude concise overshoot bean.
+Follow-ups: popclip-summarize-d4rq (Apple answers questions), popclip-summarize-2mcp (Claude concise overshoot).
