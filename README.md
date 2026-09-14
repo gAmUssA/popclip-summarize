@@ -15,6 +15,10 @@ All actions honor the same **Style** and **Extra Instructions** settings and sho
 their result in the same native floating panel, so you can switch engines without
 relearning anything.
 
+> The user guide shown in the PopClip Directory lives in
+> [`AISummarize.popclipext/README.md`](AISummarize.popclipext/README.md). This file
+> is the fuller reference and the developer guide.
+
 ---
 
 ## Requirements
