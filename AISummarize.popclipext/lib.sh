@@ -19,27 +19,22 @@ BASE_ENV=(
 # Honor a toolchain the user selected per-process rather than with xcode-select.
 [[ -z "${DEVELOPER_DIR:-}" ]] || BASE_ENV+=("DEVELOPER_DIR=${DEVELOPER_DIR}")
 
-# Compile a Swift source into a cached binary, rebuilding only when the source
-# changes. Prints the binary's path.
+# Compile a Swift source into a cached binary, rebuilding only when something
+# that affects the build changes. Prints the binary's path.
 #
 # Running the sources through `swift` on every invocation would re-parse and
 # re-typecheck AppKit and FoundationModels each time, adding seconds to every
-# summary. Caching keyed on the source hash means an extension update rebuilds
-# automatically and nothing else does.
+# summary. The cache key covers the source, the compiler (path and timestamp, so
+# an Xcode or Command Line Tools update rebuilds), and the OS release and CPU —
+# a helper built before an OS upgrade may have compiled without FoundationModels.
+# Each key gets its own file, so concurrent runs and different extension
+# versions never overwrite each other's binary mid-use.
 build_cached() {
     local source="$1"
-    local name binary stamp hash scratch
+    local name swiftc key binary scratch old
     # Absolute paths throughout: PopClip does not promise the action a login
     # shell's PATH, and a summary failing on a missing `cut` would be baffling.
     name="$(/usr/bin/basename "$source" .swift)"
-    binary="${CACHE_DIR}/${name}"
-    stamp="${binary}.hash"
-    hash="$(/usr/bin/shasum -a 256 "$source" | /usr/bin/cut -d ' ' -f 1)"
-
-    if [[ -x "$binary" && -f "$stamp" && "$(/bin/cat "$stamp")" == "$hash" ]]; then
-        printf '%s' "$binary"
-        return 0
-    fi
 
     # /usr/bin/swiftc is a shim that exists even with no toolchain behind it, so
     # its presence proves nothing — ask xcode-select whether one is installed.
@@ -47,19 +42,42 @@ build_cached() {
         echo "AI Summarize needs the Xcode Command Line Tools. Install them with: xcode-select --install" >&2
         exit 1
     fi
+    if ! swiftc="$(/usr/bin/env -i "${BASE_ENV[@]}" /usr/bin/xcrun --find swiftc 2>/dev/null)"; then
+        echo "The selected developer tools have no Swift compiler. Reinstall them with: xcode-select --install" >&2
+        exit 1
+    fi
 
+    key="$(
+        {
+            /usr/bin/shasum -a 256 "$source"
+            printf '%s\n' "$swiftc" "$(/usr/bin/stat -f %m "$swiftc")" "$(/usr/bin/uname -rm)"
+        } | /usr/bin/shasum -a 256 | /usr/bin/cut -c 1-16
+    )"
+    binary="${CACHE_DIR}/${name}-${key}"
+
+    if [[ -x "$binary" ]]; then
+        printf '%s' "$binary"
+        return 0
+    fi
+
+    # Private: the cache holds executables that later run with your privileges.
     /bin/mkdir -p "$CACHE_DIR"
-    scratch="${binary}.$$"
+    /bin/chmod 700 "$CACHE_DIR"
+    scratch="${binary}.$$.tmp"
+    # Through the /usr/bin shim, not "$swiftc": the shim is what supplies the SDK.
     if ! /usr/bin/env -i "${BASE_ENV[@]}" /usr/bin/swiftc -O -o "$scratch" "$source" \
         2>"${CACHE_DIR}/${name}.build.log"; then
         /bin/rm -f "$scratch"
         echo "Could not build the ${name} helper. Details: ${CACHE_DIR}/${name}.build.log" >&2
         exit 1
     fi
-    # Move into place only after a successful build, so a failed compile never
-    # leaves a half-written binary that later runs skip rebuilding.
+    # Publish with a rename, which is atomic, so no run ever sees a half-written
+    # binary. Then drop this helper's older builds, including the unkeyed ones
+    # earlier versions wrote. Another run's in-progress `.tmp` is left alone.
     /bin/mv -f "$scratch" "$binary"
-    printf '%s' "$hash" >"$stamp"
+    for old in "${CACHE_DIR}/${name}" "${CACHE_DIR}/${name}.hash" "${CACHE_DIR}/${name}"-*; do
+        [[ "$old" == "$binary" || "$old" == *.tmp || ! -e "$old" ]] || /bin/rm -f "$old"
+    done
     printf '%s' "$binary"
 }
 

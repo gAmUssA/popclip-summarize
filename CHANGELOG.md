@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gets the selection, the shared settings, and its own provider's options only.
 - Cloud engines refuse HTTP redirects, so neither the API key nor the selection
   can be forwarded to another host.
+- The compiled-helper cache is now private to your user and rebuilds when Xcode,
+  the Command Line Tools, or macOS change, not only when the extension does. A
+  helper built before an OS upgrade could otherwise stay compiled without
+  Apple Intelligence support.
 
 ### Packaging
 

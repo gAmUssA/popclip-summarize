@@ -4,12 +4,12 @@ Select text anywhere on macOS, click **Summarize**, get a summary.
 
 Four engines, one extension:
 
-| Action | Engine | Needs | Cost | Privacy |
-|---|---|---|---|---|
-| **Summarize (Claude)** | Anthropic Messages API | API key, network | ~$0.002 / summary on Haiku 4.5 | Text is sent to Anthropic |
-| **Summarize (ChatGPT)** | OpenAI Responses API | API key, network | ~$0.0004 / summary on GPT-5.6 Luna | Text is sent to OpenAI (with `store: false`) |
-| **Summarize (Grok)** | xAI Responses API | API key, network | ~$0.002 / summary on Grok 4.3 | Text is sent to xAI (with `store: false`) |
-| **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free | Nothing leaves the Mac |
+| Action                             | Engine                      | Needs                    | Cost                               | Privacy                                      |
+|------------------------------------|-----------------------------|--------------------------|------------------------------------|----------------------------------------------|
+| **Summarize (Claude)**             | Anthropic Messages API      | API key, network         | ~$0.002 / summary on Haiku 4.5     | Text is sent to Anthropic                    |
+| **Summarize (ChatGPT)**            | OpenAI Responses API        | API key, network         | ~$0.0004 / summary on GPT-5.6 Luna | Text is sent to OpenAI (with `store: false`) |
+| **Summarize (Grok)**               | xAI Responses API           | API key, network         | ~$0.002 / summary on Grok 4.3      | Text is sent to xAI (with `store: false`)    |
+| **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free                               | Nothing leaves the Mac                       |
 
 All actions honor the same **Style** and **Extra Instructions** settings and show
 their result in the same native floating panel, so you can switch engines without
@@ -54,23 +54,23 @@ self-built extension. Signing is only available to Pilotmoon.
 
 Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 
-| Setting | Default | Notes |
-|---|---|---|
-| **API Key** | — | Stored in the macOS Keychain, not in preferences. Syncs via iCloud Keychain. Claude action only. |
-| **Model** | `claude-haiku-4-5` | Haiku 4.5 is the fastest and cheapest; Sonnet 5 and Opus 5 are available for harder source material. |
-| **Custom Model** | — | Any Anthropic model ID. Overrides **Model**. |
-| **ChatGPT › API Key** | — | Keychain-backed, like the Claude key. ChatGPT action only. |
-| **ChatGPT › Model** | `gpt-5.6-luna` | Luna is the fastest and cheapest; Terra, Sol, and GPT-6 Astra trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on GPT-5.6, `low` on GPT-6). |
-| **ChatGPT › Custom Model** | — | Any OpenAI model ID usable with the Responses API. Overrides **Model**. IDs outside `gpt-5.6*` / `gpt-6*` are sent without a reasoning setting, so non-reasoning models such as `gpt-4.1-mini` work too. |
-| **Grok › API Key** | — | Keychain-backed. Grok action only. |
-| **Grok › Model** | `grok-4.3` | Grok 4.3 is the fastest and cheapest; 4.5 and 4.6 trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on 4.3, `low` on 4.5 and 4.6). |
-| **Grok › Custom Model** | — | Any xAI model ID usable with the Responses API. Overrides **Model**; IDs outside `grok-4.3*` / `grok-4.5*` / `grok-4.6*` are sent without a reasoning setting. |
-| **Style** | Concise paragraph | Also: bullet points, or a one-line TL;DR. Applies to all engines. |
-| **Extra Instructions** | — | Appended to the prompt for every engine. e.g. `Reply in French.` |
-| **Result** | Summary window | The floating panel, full-screen large type, or clipboard-only. Applies to all engines. |
-| **Show Apple Intelligence action** | On | Turn off to hide the action on Macs without Apple Intelligence. |
-| **Show ChatGPT action** | On | Turn off if you have no OpenAI key. |
-| **Show Grok action** | On | Turn off if you have no xAI key. |
+| Setting                            | Default            | Notes                                                                                                                                                                                                    |
+|------------------------------------|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **API Key**                        | —                  | Stored in the macOS Keychain, not in preferences. Syncs via iCloud Keychain. Claude action only.                                                                                                         |
+| **Model**                          | `claude-haiku-4-5` | Haiku 4.5 is the fastest and cheapest; Sonnet 5 and Opus 5 are available for harder source material.                                                                                                     |
+| **Custom Model**                   | —                  | Any Anthropic model ID. Overrides **Model**.                                                                                                                                                             |
+| **ChatGPT › API Key**              | —                  | Keychain-backed, like the Claude key. ChatGPT action only.                                                                                                                                               |
+| **ChatGPT › Model**                | `gpt-5.6-luna`     | Luna is the fastest and cheapest; Terra, Sol, and GPT-6 Astra trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on GPT-5.6, `low` on GPT-6).                    |
+| **ChatGPT › Custom Model**         | —                  | Any OpenAI model ID usable with the Responses API. Overrides **Model**. IDs outside `gpt-5.6*` / `gpt-6*` are sent without a reasoning setting, so non-reasoning models such as `gpt-4.1-mini` work too. |
+| **Grok › API Key**                 | —                  | Keychain-backed. Grok action only.                                                                                                                                                                       |
+| **Grok › Model**                   | `grok-4.3`         | Grok 4.3 is the fastest and cheapest; 4.5 and 4.6 trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on 4.3, `low` on 4.5 and 4.6).                              |
+| **Grok › Custom Model**            | —                  | Any xAI model ID usable with the Responses API. Overrides **Model**; IDs outside `grok-4.3*` / `grok-4.5*` / `grok-4.6*` are sent without a reasoning setting.                                           |
+| **Style**                          | Concise paragraph  | Also: bullet points, or a one-line TL;DR. Applies to all engines.                                                                                                                                        |
+| **Extra Instructions**             | —                  | Appended to the prompt for every engine. e.g. `Reply in French.`                                                                                                                                         |
+| **Result**                         | Summary window     | The floating panel, full-screen large type, or clipboard-only. Applies to all engines.                                                                                                                   |
+| **Show Apple Intelligence action** | On                 | Turn off to hide the action on Macs without Apple Intelligence.                                                                                                                                          |
+| **Show ChatGPT action**            | On                 | Turn off if you have no OpenAI key.                                                                                                                                                                      |
+| **Show Grok action**               | On                 | Turn off if you have no xAI key.                                                                                                                                                                         |
 
 ### Reading the summary
 
@@ -172,7 +172,10 @@ PopClip waits on the action process, and an attached window would hang the
 extension until dismissed.
 
 The Swift sources are compiled to `~/Library/Caches/io.gamov.popclip.extension.ai-summarize`
-and reused, keyed on a SHA-256 of the source. Interpreting them with `swift` on
+and reused. The cache key covers the source, the compiler's path and timestamp,
+and the OS release and CPU, so an extension update, an Xcode or Command Line Tools
+update, or an OS upgrade each trigger a rebuild. Each key gets its own file in a
+private (`700`) directory, and older builds are removed after a successful one. Interpreting them with `swift` on
 every invocation would re-typecheck AppKit and FoundationModels each time.
 Shipping a prebuilt binary would trip Gatekeeper quarantine on download instead.
 
