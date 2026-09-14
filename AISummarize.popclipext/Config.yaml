@@ -1,5 +1,9 @@
 name: AI Summarize
 identifier: io.gamov.popclip.extension.ai-summarize
+shellScriptRationale: >-
+  Shows summaries in a native AppKit floating panel and runs Apple's on-device
+  FoundationModels, neither of which PopClip's JavaScript API can do. The engines
+  are readable Swift source, compiled locally on first use; no binaries ship.
 description: Summarize the selected text with Claude, ChatGPT, or Grok (cloud), or Apple Intelligence (on-device).
 popclip version: 4586
 entitlements: [network]
@@ -180,9 +184,12 @@ options:
     type: heading
     label: AI Summarize 0.4.0 · github.com/gAmUssA/popclip-summarize
 
-# All actions are shell scripts because they present the result in a native
-# panel of their own, and PopClip's JavaScript environment cannot launch one.
-# Neither declares an `after:` key — the wrapper does its own delivering.
+# All actions are shell scripts: the result panel is AppKit and the on-device
+# engine is FoundationModels, both native code PopClip's JavaScript can't run.
+# (PopClip 6221 lets JavaScript start a shell script, but that would only add a
+# hop in front of the same native code.) The cloud engines are Swift too, so
+# every engine shares one contract and one viewer. No action declares `after:` —
+# the wrapper does its own delivering.
 actions:
   - title: Summarize (Claude)
     icon: claude.svg

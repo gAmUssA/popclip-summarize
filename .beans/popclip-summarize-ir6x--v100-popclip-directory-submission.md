@@ -1,11 +1,11 @@
 ---
 # popclip-summarize-ir6x
 title: v1.0.0 — PopClip Directory submission
-status: todo
+status: in-progress
 type: milestone
 priority: normal
 created_at: 2026-09-14T21:26:05Z
-updated_at: 2026-09-14T21:26:17Z
+updated_at: 2026-09-14T22:13:51Z
 blocked_by:
     - popclip-summarize-524k
 ---

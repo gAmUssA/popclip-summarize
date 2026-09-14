@@ -2,11 +2,10 @@
 //  claude-summarize.swift — Summarize the selected text with Anthropic's
 //  Messages API.
 //
-//  This was a PopClip `javascript file` action until the result moved into a
-//  native window: PopClip's JavaScript environment has no subprocess API, so a
-//  JS action cannot launch the viewer. As a shell-script action it can, and the
-//  API key still arrives from the Keychain-backed `secret` option as
-//  $POPCLIP_OPTION_APIKEY.
+//  Run by a shell-script action so it shares the native summary window and one
+//  contract with the other engines (see the note above `actions:` in
+//  Config.yaml). The API key arrives from the Keychain-backed `secret` option
+//  as $POPCLIP_OPTION_APIKEY.
 //
 //  Contract: the summary goes to stdout; errors go to stderr. Exit 0 on
 //  success, 2 to send the user to the extension settings, 1 otherwise.

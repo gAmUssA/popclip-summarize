@@ -84,7 +84,7 @@ put on the clipboard either way, so ⌘V works after the panel is gone.
 display, above the menu bar, dismissed with Escape, Return, Space, or a click.
 The font size is fitted to the text, so a one-line TL;DR really does fill the
 screen. This is drawn by the extension — PopClip's own Large Type is reachable
-only from a `javascript file` action, which cannot launch a window at all.
+only from a JavaScript action's result, not from the native panel's pipeline.
 
 Set **Result** to *Copy to clipboard only* if you would rather have no window at all.
 
@@ -152,12 +152,13 @@ AISummarize.popclipext/
 └── claude.svg, openai.svg, grok.svg  # action icons (see License)
 ```
 
-All actions are `shell script file` actions. That is forced by the window:
-PopClip's JavaScript environment has **no subprocess API**, so a JS action cannot
-launch the panel, and PopClip's own result handlers cannot draw one. The Claude
-engine was JavaScript until the window arrived; it is now Swift using
-`URLSession`, and the Keychain-backed API key still reaches it as
-`$POPCLIP_OPTION_APIKEY`.
+All actions are `shell script file` actions, and `Config.yaml` says why in its
+`shellScriptRationale`: the result panel is AppKit and the on-device engine is
+FoundationModels, native code PopClip's JavaScript API can't run. PopClip 6221
+lets JavaScript start a shell script, but that would only put a hop in front of
+the same native code. The cloud engines are Swift using `URLSession` so that every
+engine shares one contract and one viewer; each Keychain-backed API key reaches
+its engine as `$POPCLIP_OPTION_<ID>`.
 
 Each action wrapper does three things: compile the engine and the viewer if their
 sources changed, run the engine, then deliver the result. The viewer owns an

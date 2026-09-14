@@ -4,9 +4,9 @@
 //
 //  Usage: responses-summarize --provider openai|xai
 //
-//  A shell-script action like the Claude engine, for the same reason: only a
-//  shell-script action can launch the native summary window. Each provider's
-//  API key arrives from its Keychain-backed `secret` option.
+//  Run by a shell-script action like the Claude engine, for the same reason: it
+//  shares the native summary window and one contract with the other engines.
+//  Each provider's API key arrives from its Keychain-backed `secret` option.
 //
 //  Contract: the summary goes to stdout; errors go to stderr. Exit 0 on
 //  success, 2 to send the user to the extension settings, 1 otherwise.

@@ -42,6 +42,13 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 		head -1 "$$f" | grep -q '^#!' \
 			|| (echo "    FAIL: $$f missing shebang line" && exit 1); \
 	done
+	@echo "==> shell-script actions come with a shellScriptRationale"
+	@# The PopClip Directory rejects a shell-script extension without one outright.
+	@ruby -ryaml -e 'd = YAML.load_file("$(EXT)/Config.yaml"); \
+		exit unless d["actions"].any? { |a| a["shell script file"] || a["shellScriptFile"] }; \
+		r = d["shellScriptRationale"].to_s.strip; \
+		abort "    FAIL: shell-script actions need a top-level shellScriptRationale (20+ characters)" if r.length < 20; \
+		puts "    #{r.length} characters"'
 	@echo "==> every action script named in Config.yaml exists"
 	@ruby -ryaml -e 'YAML.load_file("$(EXT)/Config.yaml")["actions"].each { |a| \
 		f = a["shell script file"] or abort "action #{a["title"]} has no shell script file"; \

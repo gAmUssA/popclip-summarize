@@ -9,10 +9,9 @@
 //  Usage: summary-window --title "Claude · Sonnet 5" [--style panel|fullscreen]
 //         < summary.txt
 //
-//  The full-screen style replaces PopClip's own Large Type, which is reachable
-//  only from a `javascript file` action — and JavaScript cannot launch this
-//  program in the first place. Drawing it here costs one window and buys
-//  control over the typography.
+//  The full-screen style stands in for PopClip's own Large Type, which is
+//  reachable only from a JavaScript action's result. Drawing it here costs one
+//  window and buys control over the typography.
 //
 
 import AppKit

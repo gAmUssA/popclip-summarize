@@ -1,8 +1,8 @@
 # lib.sh — shared plumbing for the action wrappers. Sourced, never run.
 #
-# PopClip gives shell-script actions no way to draw a window, and its JavaScript
-# environment has no subprocess API — so the result window is a small AppKit
-# program we compile on first use and launch detached.
+# PopClip's own result handlers can't draw a selectable, resizable panel, so the
+# result window is a small AppKit program we compile on first use and launch
+# detached.
 
 CACHE_DIR="${HOME}/Library/Caches/io.gamov.popclip.extension.ai-summarize"
 
