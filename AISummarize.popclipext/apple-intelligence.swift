@@ -62,7 +62,8 @@ default:
 // while "no more than 3 sentences" was violated in 31 of 40 runs and actually
 // pushed verbatim copying up (64% -> 85%) as the model padded to hit the shape.
 // The rewrite clause is what suppresses copying: 64% -> 34% on-device, 10% -> 0%
-// on Claude. Keep this block identical to the one in claude-summarize.swift.
+// on Claude. Keep this block identical to the ones in claude-summarize.swift
+// and openai-summarize.swift.
 var instructionLines = [
     "You are a summarization engine.",
     styleInstruction,
@@ -91,7 +92,7 @@ let instructions = instructionLines.joined(separator: " ")
         break
     case .unavailable(.deviceNotEligible):
         fail(
-            "This Mac does not support Apple Intelligence. Use the Claude action instead, or turn off the Apple Intelligence action in the extension settings."
+            "This Mac does not support Apple Intelligence. Use the Claude or ChatGPT action instead, or turn off the Apple Intelligence action in the extension settings."
         )
     case .unavailable(.appleIntelligenceNotEnabled):
         fail(

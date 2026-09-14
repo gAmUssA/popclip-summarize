@@ -3,7 +3,7 @@ DIST    := dist
 
 # The scripts PopClip launches directly, as opposed to the sourced library and
 # the Swift sources, which are compiled to a cache on first use.
-ACTIONS := $(EXT)/summarize-claude.sh $(EXT)/summarize-apple.sh
+ACTIONS := $(EXT)/summarize-claude.sh $(EXT)/summarize-openai.sh $(EXT)/summarize-apple.sh
 
 # Version comes from the git tag (v1.2.3 -> 1.2.3). Untagged builds get the
 # short commit sha so a local package is never mistaken for a release.
@@ -46,6 +46,13 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 	@ruby -ryaml -e 'YAML.load_file("$(EXT)/Config.yaml")["actions"].each { |a| \
 		f = a["shell script file"] or abort "action #{a["title"]} has no shell script file"; \
 		abort "missing #{f}" unless File.exist?("$(EXT)/#{f}") }'
+	@echo "==> every option-<id> requirement names a declared option"
+	@# PopClip does not complain about an undeclared one; the action just never shows.
+	@ruby -ryaml -e 'd = YAML.load_file("$(EXT)/Config.yaml"); \
+		ids = d["options"].map { |o| o["identifier"] }; \
+		d["actions"].each { |a| (a["requirements"] || []).each { |r| \
+			id = r[/\Aoption-([^=]+)/, 1] or next; \
+			abort "action #{a["title"]} requires undeclared option #{id}" unless ids.include?(id) } }'
 	@echo "==> all checks passed"
 
 .PHONY: check-full

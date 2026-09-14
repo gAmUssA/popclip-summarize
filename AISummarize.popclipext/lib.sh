@@ -1,4 +1,4 @@
-# lib.sh — shared plumbing for the two action wrappers. Sourced, never run.
+# lib.sh — shared plumbing for the action wrappers. Sourced, never run.
 #
 # PopClip gives shell-script actions no way to draw a window, and its JavaScript
 # environment has no subprocess API — so the result window is a small AppKit

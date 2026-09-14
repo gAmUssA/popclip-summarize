@@ -2,14 +2,15 @@
 
 Select text anywhere on macOS, click **Summarize**, get a summary.
 
-Two engines, one extension:
+Three engines, one extension:
 
 | Action | Engine | Needs | Cost | Privacy |
 |---|---|---|---|---|
 | **Summarize (Claude)** | Anthropic Messages API | API key, network | ~$0.002 / summary on Haiku 4.5 | Text is sent to Anthropic |
+| **Summarize (ChatGPT)** | OpenAI Responses API | API key, network | ~$0.0004 / summary on GPT-5.6 Luna | Text is sent to OpenAI (with `store: false`) |
 | **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free | Nothing leaves the Mac |
 
-Both actions honor the same **Style** and **Extra Instructions** settings and show
+All actions honor the same **Style** and **Extra Instructions** settings and show
 their result in the same native floating panel, so you can switch engines without
 relearning anything.
 
@@ -21,6 +22,8 @@ relearning anything.
 - The **Xcode Command Line Tools** (`xcode-select --install`). Both engines and
   the result window are Swift, compiled once into `~/Library/Caches` on first use.
 - **Claude action:** an [Anthropic API key](https://console.anthropic.com/settings/keys).
+- **ChatGPT action:** an [OpenAI API key](https://platform.openai.com/api-keys).
+  A ChatGPT Plus/Pro subscription does not include API access; the key is billed separately.
 - **Apple Intelligence action:** macOS **26** or later on Apple silicon, with
   Apple Intelligence enabled in *System Settings › Apple Intelligence & Siri*.
   On any other Mac, turn the action off in the extension settings.
@@ -50,16 +53,20 @@ Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 | **API Key** | — | Stored in the macOS Keychain, not in preferences. Syncs via iCloud Keychain. Claude action only. |
 | **Model** | `claude-haiku-4-5` | Haiku 4.5 is the fastest and cheapest; Sonnet 5 and Opus 5 are available for harder source material. |
 | **Custom Model** | — | Any Anthropic model ID. Overrides **Model**. |
-| **Style** | Concise paragraph | Also: bullet points, or a one-line TL;DR. Applies to both engines. |
-| **Extra Instructions** | — | Appended to the prompt for both engines. e.g. `Reply in French.` |
-| **Result** | Summary window | The floating panel, full-screen large type, or clipboard-only. Applies to both engines. |
-| **Show Apple Intelligence action** | On | Turn off to hide the second action on Macs without Apple Intelligence. |
+| **ChatGPT › API Key** | — | Keychain-backed, like the Claude key. ChatGPT action only. |
+| **ChatGPT › Model** | `gpt-5.6-luna` | Luna is the fastest and cheapest; Terra, Sol, and GPT-6 Astra trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on GPT-5.6, `low` on GPT-6). |
+| **ChatGPT › Custom Model** | — | Any OpenAI model ID usable with the Responses API. Overrides **Model**. IDs outside `gpt-5.6*` / `gpt-6*` are sent without a reasoning setting, so non-reasoning models such as `gpt-4.1-mini` work too. |
+| **Style** | Concise paragraph | Also: bullet points, or a one-line TL;DR. Applies to all engines. |
+| **Extra Instructions** | — | Appended to the prompt for every engine. e.g. `Reply in French.` |
+| **Result** | Summary window | The floating panel, full-screen large type, or clipboard-only. Applies to all engines. |
+| **Show Apple Intelligence action** | On | Turn off to hide the action on Macs without Apple Intelligence. |
+| **Show ChatGPT action** | On | Turn off if you have no OpenAI key. |
 
 ### Reading the summary
 
 Neither of PopClip's built-in result handlers is much good for a paragraph of
 prose: the compact popup **truncates at 160 characters**, and Large Type takes
-over the whole screen. So both actions instead open a small native panel next to
+over the whole screen. So every action instead opens a small native panel next to
 the pointer — an `NSPanel` with the standard popover material, floating above
 whatever app you are in.
 
@@ -79,7 +86,8 @@ Set **Result** to *Copy to clipboard only* if you would rather have no window at
 
 Haiku 4.5 is $1.00 per million input tokens and $5.00 per million output tokens.
 Summarizing a ~1,000-word article costs roughly **$0.002** — about 500 summaries
-per dollar. The Apple Intelligence action is free.
+per dollar. GPT-5.6 Luna is $0.20 / $1.20 per million tokens — roughly **$0.0004**
+for the same article. The Apple Intelligence action is free.
 
 ## Troubleshooting
 
@@ -89,11 +97,18 @@ pane automatically. Paste a key and try again.
 **"Settings error: Anthropic rejected the API key"** — the key is wrong, revoked,
 or out of credit. Check it at [console.anthropic.com](https://console.anthropic.com/settings/keys).
 
+**"OpenAI rejected the API key"** / **"Your OpenAI account is out of credit"** —
+check the key and billing at [platform.openai.com](https://platform.openai.com/api-keys).
+API usage is billed separately from a ChatGPT subscription.
+
+**"Unknown model" on the ChatGPT action** — the Custom Model ID is mistyped, or
+your OpenAI organization has no access to it.
+
 **"Apple Intelligence is turned off"** — enable it in *System Settings › Apple
 Intelligence & Siri*, then try again.
 
 **"This Mac does not support Apple Intelligence"** — you need macOS 26+ on Apple
-silicon. Turn the action off in the extension settings and use Claude instead.
+silicon. Turn the action off in the extension settings and use Claude or ChatGPT instead.
 
 **The first summary after installing or updating is slow** — the Swift helpers
 compile into `~/Library/Caches/io.gamov.popclip.extension.ai-summarize` on first
@@ -108,22 +123,24 @@ that is the on-device model loading into memory on first use. It stays warm afte
 
 **"Selection is too long for the on-device model"** — the on-device context window
 is small (4K tokens on macOS 26). The script caps input at 6,000 characters. Use
-the Claude action for long documents; Haiku 4.5 has a 200K-token window.
+the Claude or ChatGPT action for long documents.
 
 ## How it works
 
 ```
 AISummarize.popclipext/
-├── Config.yaml               # extension metadata, settings, and the two actions
+├── Config.yaml               # extension metadata, settings, and the three actions
 ├── summarize-claude.sh       # action → build, run the Claude engine, present
+├── summarize-openai.sh       # action → build, run the ChatGPT engine, present
 ├── summarize-apple.sh        # action → build, run the on-device engine, present
 ├── lib.sh                    # shared: build cache + result delivery
 ├── claude-summarize.swift    # engine → Anthropic Messages API
+├── openai-summarize.swift    # engine → OpenAI Responses API
 ├── apple-intelligence.swift  # engine → FoundationModels (on-device)
 └── summary-window.swift      # the result panel and large type (AppKit)
 ```
 
-Both actions are `shell script file` actions. That is forced by the window:
+All actions are `shell script file` actions. That is forced by the window:
 PopClip's JavaScript environment has **no subprocess API**, so a JS action cannot
 launch the panel, and PopClip's own result handlers cannot draw one. The Claude
 engine was JavaScript until the window arrived; it is now Swift using
@@ -189,4 +206,4 @@ Maven-style artifacts, not arbitrary zips.
 
 MIT — see [LICENSE](LICENSE).
 
-Not affiliated with Pilotmoon Software or Anthropic.
+Not affiliated with Pilotmoon Software, Anthropic, or OpenAI.

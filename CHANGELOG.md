@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-14
+
+### Added
+
+- **Summarize (ChatGPT)** — a third action backed by OpenAI's Responses API, with
+  its own Keychain-stored API key, a model picker (GPT-5.6 Luna, Terra, Sol, and
+  GPT-6 Astra; Luna by default), and a custom model ID override. Reasoning
+  effort is pinned to the lowest each model allows, requests are sent with
+  `store: false`, and it shares the Style, Extra Instructions, and Result
+  settings and the summary window with the other engines. Hide it with the new
+  **Show ChatGPT action** setting.
+- `make check` now fails when an action requires an option that `Config.yaml`
+  does not declare — PopClip silently hides such an action instead of erroring.
+
 ## [0.2.0] - 2026-08-03
 
 ### Added
@@ -80,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make check` validation of the config, both scripts, and the executable bit,
   wired into CI.
 
-[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/gAmUssA/popclip-summarize/releases/tag/v0.1.0
