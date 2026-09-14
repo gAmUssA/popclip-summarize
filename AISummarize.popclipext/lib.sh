@@ -123,9 +123,11 @@ deliver() {
         *) return 0 ;;  # copy-only
     esac
 
-    local viewer payload
+    local viewer payload ready log pid
     viewer="$(build_cached "${EXT_DIR}/summary-window.swift")"
     payload="$(/usr/bin/mktemp "${TMPDIR:-/tmp}/ai-summarize.XXXXXX")"
+    ready="$(/usr/bin/mktemp -u "${TMPDIR:-/tmp}/ai-summarize-ready.XXXXXX")"
+    log="${CACHE_DIR}/summary-window.log"
     printf '%s' "$summary" >"$payload"
 
     # The viewer owns an AppKit run loop and lives until the user closes it, so
@@ -135,9 +137,30 @@ deliver() {
     # It gets no PopClip values at all: the summary arrives on stdin.
     /usr/bin/env -i "${BASE_ENV[@]}" \
         SUMMARY_VIEWER="$viewer" SUMMARY_TITLE="$title" SUMMARY_PAYLOAD="$payload" \
-        SUMMARY_STYLE="$viewer_style" \
+        SUMMARY_STYLE="$viewer_style" SUMMARY_READY="$ready" \
         /usr/bin/nohup /bin/sh -c \
-        'exec <"$SUMMARY_PAYLOAD"; rm -f "$SUMMARY_PAYLOAD"; exec "$SUMMARY_VIEWER" --title "$SUMMARY_TITLE" --style "$SUMMARY_STYLE"' \
-        >/dev/null 2>&1 &
+        'exec <"$SUMMARY_PAYLOAD"; rm -f "$SUMMARY_PAYLOAD"; exec "$SUMMARY_VIEWER" --title "$SUMMARY_TITLE" --style "$SUMMARY_STYLE" --ready "$SUMMARY_READY"' \
+        >/dev/null 2>"$log" &
+    pid=$!
     disown 2>/dev/null || true
+
+    # Wait for the window to report in. Detached, the viewer can't pass an
+    # error back, so a window that crashes on launch would otherwise just never
+    # appear. A viewer still starting after 5 s is left alone — it is alive and
+    # will show — but one that exited without signalling failed.
+    local tries
+    for ((tries = 0; tries < 100; tries++)); do
+        if [[ -e "$ready" ]]; then
+            /bin/rm -f "$ready"
+            return 0
+        fi
+        /bin/kill -0 "$pid" 2>/dev/null || break
+        /bin/sleep 0.05
+    done
+    if /bin/kill -0 "$pid" 2>/dev/null; then
+        return 0
+    fi
+    /bin/rm -f "$payload" "$ready"
+    echo "Couldn't open the summary window, but the summary is on the clipboard. Details: ${log}" >&2
+    exit 1
 }

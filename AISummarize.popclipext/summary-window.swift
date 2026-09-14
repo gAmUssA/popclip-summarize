@@ -7,7 +7,10 @@
 //  window is closed, so it must be launched detached from the PopClip action.
 //
 //  Usage: summary-window --title "Claude · Sonnet 5" [--style panel|fullscreen]
-//         < summary.txt
+//         [--ready <path>] < summary.txt
+//
+//  --ready names a file to create once the window is on screen, so the
+//  detached launcher can tell a window that came up from one that never will.
 //
 //  The full-screen style stands in for PopClip's own Large Type, which is
 //  reachable only from a JavaScript action's result. Drawing it here costs one
@@ -25,6 +28,7 @@ enum Style: String {
 
 var windowTitle = "Summary"
 var style = Style.panel
+var readyPath: String?
 var arguments = Array(CommandLine.arguments.dropFirst())
 while let flag = arguments.first {
     arguments.removeFirst()
@@ -39,6 +43,11 @@ while let flag = arguments.first {
             style = Style(rawValue: value) ?? .panel
             arguments.removeFirst()
         }
+    case "--ready":
+        if let value = arguments.first {
+            readyPath = value
+            arguments.removeFirst()
+        }
     default:
         break
     }
@@ -47,7 +56,16 @@ while let flag = arguments.first {
 let body = String(data: FileHandle.standardInput.readDataToEndOfFile(), encoding: .utf8)?
     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-guard !body.isEmpty else { exit(1) }
+guard !body.isEmpty else {
+    FileHandle.standardError.write(Data("summary-window: empty summary on stdin\n".utf8))
+    exit(1)
+}
+
+/// Tell the launcher the window is up.
+func signalReady() {
+    guard let path = readyPath else { return }
+    FileManager.default.createFile(atPath: path, contents: nil)
+}
 
 // MARK: - Metrics
 
@@ -357,16 +375,35 @@ final class FullScreenController: NSObject, NSWindowDelegate {
                 ]
             )
         )
-        // Centre the block vertically; long summaries fall back to filling the
-        // available height and scrolling.
+        // Centre the block vertically. A summary taller than the screen even at
+        // the minimum font size goes in a scroll view instead of being clipped.
         let blockHeight = min(textHeight, available.height)
-        textView.frame = NSRect(
+        let blockFrame = NSRect(
             x: inset.width,
             y: (frame.height - blockHeight) / 2,
             width: available.width,
             height: blockHeight
         )
-        textView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
+        let textContainerView: NSView
+        if textHeight > available.height {
+            let scroll = NSScrollView(frame: blockFrame)
+            scroll.drawsBackground = false
+            scroll.hasVerticalScroller = true
+            scroll.autohidesScrollers = true
+            textView.frame = NSRect(x: 0, y: 0, width: available.width, height: textHeight)
+            textView.minSize = NSSize(width: available.width, height: 0)
+            textView.maxSize = NSSize(width: available.width, height: .greatestFiniteMagnitude)
+            textView.isVerticallyResizable = true
+            textView.textContainer?.containerSize = NSSize(
+                width: available.width, height: .greatestFiniteMagnitude)
+            textView.textContainer?.widthTracksTextView = true
+            scroll.documentView = textView
+            textContainerView = scroll
+        } else {
+            textView.frame = blockFrame
+            textContainerView = textView
+        }
+        textContainerView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
 
         let hint = NSTextField(labelWithString: "Press Escape to dismiss · copied to the clipboard")
         hint.font = .systemFont(ofSize: 12)
@@ -376,7 +413,7 @@ final class FullScreenController: NSObject, NSWindowDelegate {
             x: 0, y: inset.height / 2.5, width: frame.width, height: 18)
         hint.autoresizingMask = [.width, .maxYMargin]
 
-        background.addSubview(textView)
+        background.addSubview(textContainerView)
         background.addSubview(hint)
 
         super.init()
@@ -425,6 +462,7 @@ case .panel:
         return nil
     }
     controller.show()
+    signalReady()
 
 case .fullscreen:
     let controller = FullScreenController(body: body)
@@ -441,6 +479,7 @@ case .fullscreen:
         return nil
     }
     controller.show()
+    signalReady()
 }
 
 app.run()

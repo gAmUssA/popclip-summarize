@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- If the summary window fails to open, the action now says so (the summary is
+  still on the clipboard) instead of silently showing nothing. Launch errors are
+  logged next to the compiled helpers.
+- Full-screen large type now scrolls when a summary is taller than the screen;
+  the rest used to be cut off.
+
+### Changed
+
+- Declares macOS 13 as the minimum (the cloud engines need it; the README's
+  10.15 claim was wrong), and `make check` verifies the engines still build for
+  it.
+- Adds directory search keywords.
+
 ## [0.5.0] - 2026-09-14
 
 ### Added
