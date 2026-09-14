@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Summaries no longer answer or obey the selected text.** The prompt now
+  frames the selection as material inside `<source>` tags and forbids facts the
+  source doesn't contain. On a question like "What is the capital of Australia,
+  and why…?", every cloud engine used to answer it, inventing dates; all now
+  describe what it asks. Selected requests ("write a haiku…") are summarized
+  instead of carried out, on all four engines. Apple Intelligence still tends to
+  answer direct questions.
+
 ## [0.4.0] - 2026-09-14
 
 ### Added
