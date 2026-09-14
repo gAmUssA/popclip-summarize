@@ -98,6 +98,7 @@ run_engine() {
         [[ -z "${!var+set}" ]] || engine_env+=("${var}=${!var}")
     done
     [[ -z "${AI_SUMMARIZE_TEST_API_URL:-}" ]] || engine_env+=("AI_SUMMARIZE_TEST_API_URL=${AI_SUMMARIZE_TEST_API_URL}")
+    [[ -z "${AI_SUMMARIZE_TEST_CLI:-}" ]] || engine_env+=("AI_SUMMARIZE_TEST_CLI=${AI_SUMMARIZE_TEST_CLI}")
     set +e
     output="$(/usr/bin/env -i "${engine_env[@]}" "$binary" "$@")"
     status=$?

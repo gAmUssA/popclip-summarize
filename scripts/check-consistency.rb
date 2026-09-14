@@ -12,7 +12,7 @@ require "yaml"
 EXT = File.expand_path("../AISummarize.popclipext", __dir__)
 CONFIG = YAML.load_file(File.join(EXT, "Config.yaml"))
 OPTIONS = CONFIG["options"].to_h { |o| [o["identifier"], o] }
-ENGINES = %w[claude-summarize.swift responses-summarize.swift apple-intelligence.swift].freeze
+ENGINES = %w[claude-summarize.swift responses-summarize.swift apple-intelligence.swift cli-summarize.swift].freeze
 
 $failures = []
 
@@ -96,6 +96,7 @@ SHARED_OPTIONS = %w[STYLE EXTRA].freeze
 engine_reads = {
   "claude-summarize.swift" => read("claude-summarize.swift").scan(/\boption\("([A-Z0-9_]+)"\)/).flatten,
   "apple-intelligence.swift" => read("apple-intelligence.swift").scan(/POPCLIP_OPTION_([A-Z0-9_]+)/).flatten,
+  "cli-summarize.swift" => read("cli-summarize.swift").scan(/\boption\("([A-Z0-9_]+)"\)/).flatten,
 }
 providers = read("responses-summarize.swift").scan(/"([a-z]+)": Provider\((.*?)\n    \),/m).to_h do |id, body|
   [id, body.scan(/(?:keyOption|modelOption|customModelOption): "([A-Z0-9_]+)"/).flatten]
@@ -105,26 +106,27 @@ wrapper_count = 0
 Dir[File.join(EXT, "summarize-*.sh")].sort.each do |path|
   wrapper = File.read(path)
   file = File.basename(path)
-  call = wrapper.match(/run_engine "\$engine" "([A-Z0-9_ ]*)"(?: --provider ([a-z]+))?/)
-  next fail!("#{file}: no run_engine \"$engine\" \"<OPTION IDS>\" call found") unless call
+  # A wrapper may build several engines (e.g. API and CLI backends): pair each
+  # run_engine call with the build_cached assignment of the variable it runs.
+  sources = wrapper.scan(/(\w+)="\$\(build_cached "\$\{EXT_DIR\}\/([a-z-]+\.swift)"\)"/).to_h
+  calls = wrapper.scan(/run_engine "\$(\w+)" "([A-Z0-9_ ]*)"(?: --provider ([a-z]+))?/)
+  next fail!("#{file}: no run_engine \"$engine\" \"<OPTION IDS>\" call found") if calls.empty?
 
-  wrapper_count += 1
-  source = wrapper[/build_cached "\$\{EXT_DIR\}\/([a-z-]+\.swift)"/, 1]
-  if call[2] && !providers.key?(call[2])
-    fail!("#{file}: run_engine names unknown provider #{call[2]}")
-    next
+  calls.each do |var, passed, provider|
+    wrapper_count += 1
+    source = sources[var] or next fail!("#{file}: run_engine runs $#{var}, which isn't assigned from build_cached")
+    if provider && !providers.key?(provider)
+      fail!("#{file}: run_engine names unknown provider #{provider}")
+      next
+    end
+    needed = provider ? providers[provider] + shared_responses : engine_reads.fetch(source, [])
+    missing = needed.uniq - SHARED_OPTIONS - passed.split
+    missing.each { |id| fail!("#{file}: #{source} reads option #{id.downcase} but run_engine doesn't pass it") }
   end
-  needed = if call[2]
-             providers[call[2]] + shared_responses
-           else
-             engine_reads.fetch(source, [])
-           end
-  missing = needed.uniq - SHARED_OPTIONS - call[1].split
-  missing.each { |id| fail!("#{file}: #{source} reads option #{id.downcase} but run_engine doesn't pass it") }
 end
 
 if $failures.empty?
-  puts "    #{references.size} option references, #{defaults.size} default models, #{blocks.size} prompt blocks, #{wrapper_count} wrapper option lists agree"
+  puts "    #{references.size} option references, #{defaults.size} default models, #{blocks.size} prompt blocks, #{wrapper_count} engine calls agree"
 else
   $failures.each { |f| warn "    FAIL: #{f}" }
   exit 1

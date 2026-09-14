@@ -52,6 +52,23 @@ options:
     type: heading
     label: OpenAI
 
+  - identifier: openaibackend
+    type: multiple
+    label: Backend
+    default value: api
+    values:
+      - api
+      - codex
+    value labels:
+      - API key (pay as you go)
+      - Codex CLI with your ChatGPT plan (experimental)
+    description: >-
+      Experimental: uses the Codex CLI you installed and signed in to with your
+      ChatGPT account (`codex login`), with every Codex tool turned off. Slower
+      than the API (about 5 seconds), counts against your plan's Codex limits,
+      and ChatGPT's data controls apply instead of the API's. The API key and
+      model settings below are ignored in this mode.
+
   - identifier: openaikey
     type: secret
     label: API Key

@@ -38,7 +38,7 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 	@# only if nothing newer sneaks in. Apple Intelligence is macOS 26 by design
 	@# and gated in its wrapper before it ever compiles.
 	@floor="$$(ruby -ryaml -e 'puts YAML.load_file("$(EXT)/Config.yaml")["macos version"]')"; \
-	for f in $(EXT)/claude-summarize.swift $(EXT)/responses-summarize.swift $(EXT)/summary-window.swift; do \
+	for f in $(EXT)/claude-summarize.swift $(EXT)/responses-summarize.swift $(EXT)/cli-summarize.swift $(EXT)/summary-window.swift; do \
 		swiftc -typecheck -target "$$(uname -m)-apple-macos$$floor" "$$f" 2>&1 | grep -m3 error: \
 			&& echo "    FAIL: $$f needs a newer macOS than $$floor" && exit 1; \
 	done; echo "    macOS $$floor"

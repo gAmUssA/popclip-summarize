@@ -30,6 +30,20 @@ Needs macOS 13 or later for the cloud actions. Tested on macOS 26.
 
 Hide the actions you don't use in the settings.
 
+### Experimental: OpenAI with your ChatGPT plan
+
+Instead of an API key, the OpenAI action can use the
+[Codex CLI](https://developers.openai.com/codex/) you've installed and signed in
+to with your ChatGPT account. Set **OpenAI › Backend** to *Codex CLI with your
+ChatGPT plan*, then in Terminal run `codex login` once.
+
+- Summaries take about 5 seconds, versus 1–4 with an API key.
+- Each one counts against your plan's Codex usage limits.
+- Codex runs with every tool turned off, in an empty temporary folder, so it can
+  only read the text you selected.
+- The extension never reads your ChatGPT sign-in; it only asks Codex whether
+  you're signed in.
+
 ## Setup
 
 1. Open **PopClip › Extensions › AI Summarize › Settings**.
@@ -58,6 +72,9 @@ clipboard.
   engine.
 - OpenAI and Grok requests ask the provider not to store the request
   (`store: false`). Each provider's own data-retention policy still applies.
+- **With the experimental Codex backend**, the selection goes to OpenAI through
+  your ChatGPT account, and ChatGPT's data controls apply: your content may be
+  used to improve models unless you turn that off in ChatGPT's settings.
 - **Apple Intelligence** runs entirely on your Mac. Nothing leaves it.
 - The extension keeps no history. The summary is placed on the clipboard, and a
   temporary copy used to open the panel is deleted as soon as the panel reads it.
@@ -72,7 +89,10 @@ clipboard.
   that model.
 - **"Rate limited"** or **"having trouble"**: short hiccups are retried
   automatically. If the message still appears, wait as long as it suggests.
-- **"Selection is too long for the on-device model"**: Apple Intelligence handles
+- **"Codex isn't signed in"** or **"sign-in was rejected"**: run `codex login` in
+  Terminal. **"signed in with an API key"**: sign in with ChatGPT instead, or
+  switch the Backend back to API key.
+- **"Selection is too long for the on-device model": Apple Intelligence handles
   up to 6,000 characters. Select less, or use a cloud action.
 - **"Apple Intelligence is turned off"**: turn it on in System Settings.
 - **"AI Summarize needs the Xcode Command Line Tools"**: run

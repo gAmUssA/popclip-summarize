@@ -60,6 +60,7 @@ Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 | **API Key**                        | —                  | Stored in the macOS Keychain, not in preferences. Syncs via iCloud Keychain. Claude action only.                                                                                                         |
 | **Model**                          | `claude-haiku-4-5` | Haiku 4.5 is the fastest and cheapest; Sonnet 5 and Opus 5 are available for harder source material.                                                                                                     |
 | **Custom Model**                   | —                  | Any Anthropic model ID. Overrides **Model**.                                                                                                                                                             |
+| **OpenAI › Backend** | API key | *Codex CLI with your ChatGPT plan* is experimental: it runs your installed, signed-in `codex` with every tool disabled, instead of the API. ~5 s per summary; counts against your plan's Codex limits. |
 | **OpenAI › API Key**              | —                  | Keychain-backed, like the Claude key. OpenAI action only.                                                                                                                                               |
 | **OpenAI › Model**                | `gpt-5.6-luna`     | Luna is the fastest and cheapest; Terra, Sol, and GPT-6 Astra trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on GPT-5.6, `low` on GPT-6).                    |
 | **OpenAI › Custom Model**         | —                  | Any OpenAI model ID usable with the Responses API. Overrides **Model**. IDs outside `gpt-5.6*` / `gpt-6*` are sent without a reasoning setting, so non-reasoning models such as `gpt-4.1-mini` work too. |
@@ -109,6 +110,9 @@ pane automatically. Paste a key and try again.
 **"Settings error: Anthropic rejected the API key"** — the key is wrong, revoked,
 or out of credit. Check it at [console.anthropic.com](https://console.anthropic.com/settings/keys).
 
+**Codex backend: "Codex isn't signed in" / "signed in with an API key"** — run
+`codex login` in Terminal and choose Sign in with ChatGPT.
+
 **"OpenAI rejected the API key"** / **"Your OpenAI account is out of credit"** —
 check the key and billing at [platform.openai.com](https://platform.openai.com/api-keys).
 API usage is billed separately from a ChatGPT subscription.
@@ -152,6 +156,7 @@ AISummarize.popclipext/
 ├── lib.sh                    # shared: build cache + result delivery
 ├── claude-summarize.swift    # engine → Anthropic Messages API
 ├── responses-summarize.swift # engine → Responses API, for OpenAI and xAI (--provider)
+├── cli-summarize.swift       # experimental engine → your signed-in Codex CLI (--cli codex)
 ├── apple-intelligence.swift  # engine → FoundationModels (on-device)
 ├── summary-window.swift      # the result panel and large type (AppKit)
 ├── summarize.svg, on-device.svg  # original icons: extension, Apple Intelligence action

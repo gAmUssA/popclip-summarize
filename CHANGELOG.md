@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Experimental: summarize with your ChatGPT plan.** Set **OpenAI › Backend**
+  to *Codex CLI* to use the Codex CLI you've installed and signed in to with
+  ChatGPT, instead of an API key. Codex runs with every tool disabled, in an
+  empty temporary folder, and the extension never touches your sign-in; it only
+  checks that you're signed in with ChatGPT (not an API key, which would bill
+  the API). Slower than the API (about 5 seconds) and counts against your plan's
+  Codex limits. Off by default.
+
 ### Fixed
 
 - If the summary window fails to open, the action now says so (the summary is
