@@ -14,5 +14,5 @@ model="${POPCLIP_OPTION_CUSTOMMODEL:-}"
 # Kept as separate assignments: a failing command substitution nested in an
 # argument would not trip `set -e`, and the engine would run with no binary.
 engine="$(build_cached "${EXT_DIR}/claude-summarize.swift")"
-summary="$(run_engine "$engine")"
+summary="$(run_engine "$engine" "APIKEY MODEL CUSTOMMODEL")"
 deliver "Claude · ${model}" "$summary"

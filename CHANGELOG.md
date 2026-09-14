@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bug report can name the build. `make release` and the release workflow refuse
   a tag that doesn't match it.
 
+### Security
+
+- **Each engine now sees only its own provider's API key.** PopClip passes every
+  setting — all three API keys — to the action, and the compiler, every engine,
+  and the detached summary window used to inherit all of it. Now the compiler
+  and window get a minimal environment with no PopClip values, and each engine
+  gets the selection, the shared settings, and its own provider's options only.
+- Cloud engines refuse HTTP redirects, so neither the API key nor the selection
+  can be forwarded to another host.
+
 ### Changed
 
 - **Summaries no longer answer or obey the selected text.** The prompt now

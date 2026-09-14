@@ -6,6 +6,19 @@
 
 CACHE_DIR="${HOME}/Library/Caches/io.gamov.popclip.extension.ai-summarize"
 
+# The environment every child process starts from. PopClip hands the action
+# every option as $POPCLIP_OPTION_* — including all three providers' API keys —
+# and children inherit all of it by default. Children get this instead, plus
+# only what each one needs.
+BASE_ENV=(
+    "HOME=${HOME}"
+    "TMPDIR=${TMPDIR:-/tmp}"
+    "PATH=/usr/bin:/bin:/usr/sbin:/sbin"
+    "LANG=${LANG:-en_US.UTF-8}"
+)
+# Honor a toolchain the user selected per-process rather than with xcode-select.
+[[ -z "${DEVELOPER_DIR:-}" ]] || BASE_ENV+=("DEVELOPER_DIR=${DEVELOPER_DIR}")
+
 # Compile a Swift source into a cached binary, rebuilding only when the source
 # changes. Prints the binary's path.
 #
@@ -37,7 +50,8 @@ build_cached() {
 
     /bin/mkdir -p "$CACHE_DIR"
     scratch="${binary}.$$"
-    if ! /usr/bin/swiftc -O -o "$scratch" "$source" 2>"${CACHE_DIR}/${name}.build.log"; then
+    if ! /usr/bin/env -i "${BASE_ENV[@]}" /usr/bin/swiftc -O -o "$scratch" "$source" \
+        2>"${CACHE_DIR}/${name}.build.log"; then
         /bin/rm -f "$scratch"
         echo "Could not build the ${name} helper. Details: ${CACHE_DIR}/${name}.build.log" >&2
         exit 1
@@ -49,13 +63,25 @@ build_cached() {
     printf '%s' "$binary"
 }
 
-# Run a summarization engine (with any extra arguments) and print its summary, preserving its exit status
+# Run a summarization engine and print its summary, preserving its exit status
 # so PopClip still sees exit code 2 (open settings) and the stderr message.
+#
+#   run_engine <binary> "<OPTION IDS>" [engine arguments...]
+#
+# The engine sees the selection, the settings every engine shares, and only the
+# options named in the second argument — its own provider's key and model — so
+# one provider's engine never holds another provider's key.
 run_engine() {
-    local binary="$1" output status
-    shift
+    local binary="$1" own_options="$2" output status id
+    shift 2
+    local -a engine_env=("${BASE_ENV[@]}" "POPCLIP_TEXT=${POPCLIP_TEXT:-}")
+    for id in STYLE EXTRA $own_options; do
+        local var="POPCLIP_OPTION_${id}"
+        [[ -z "${!var+set}" ]] || engine_env+=("${var}=${!var}")
+    done
+    [[ -z "${AI_SUMMARIZE_TEST_API_URL:-}" ]] || engine_env+=("AI_SUMMARIZE_TEST_API_URL=${AI_SUMMARIZE_TEST_API_URL}")
     set +e
-    output="$("$binary" "$@")"
+    output="$(/usr/bin/env -i "${engine_env[@]}" "$binary" "$@")"
     status=$?
     set -e
     [[ $status -eq 0 ]] || exit $status
@@ -88,7 +114,9 @@ deliver() {
     # it must outlive this action — PopClip waits on the action process. Detach
     # it, and unlink the payload as soon as stdin is open on it so nothing is
     # left in the temp directory whether or not the viewer exits cleanly.
-    SUMMARY_VIEWER="$viewer" SUMMARY_TITLE="$title" SUMMARY_PAYLOAD="$payload" \
+    # It gets no PopClip values at all: the summary arrives on stdin.
+    /usr/bin/env -i "${BASE_ENV[@]}" \
+        SUMMARY_VIEWER="$viewer" SUMMARY_TITLE="$title" SUMMARY_PAYLOAD="$payload" \
         SUMMARY_STYLE="$viewer_style" \
         /usr/bin/nohup /bin/sh -c \
         'exec <"$SUMMARY_PAYLOAD"; rm -f "$SUMMARY_PAYLOAD"; exec "$SUMMARY_VIEWER" --title "$SUMMARY_TITLE" --style "$SUMMARY_STYLE"' \

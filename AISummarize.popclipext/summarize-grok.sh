@@ -14,5 +14,5 @@ model="${POPCLIP_OPTION_XAICUSTOMMODEL:-}"
 # Kept as separate assignments: a failing command substitution nested in an
 # argument would not trip `set -e`, and the engine would run with no binary.
 engine="$(build_cached "${EXT_DIR}/responses-summarize.swift")"
-summary="$(run_engine "$engine" --provider xai)"
+summary="$(run_engine "$engine" "XAIKEY XAIMODEL XAICUSTOMMODEL" --provider xai)"
 deliver "Grok · ${model}" "$summary"

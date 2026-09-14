@@ -89,8 +89,42 @@ blocks.drop(1).each do |name, block|
   fail!("prompt: #{name} orders its lines differently from #{reference_name}") if (block - reference).empty? && (reference - block).empty?
 end
 
+# 4. Each wrapper passes its engine every option the engine reads. run_engine
+#    gives an engine only STYLE, EXTRA, and the options its wrapper names, so an
+#    omission here reads as "unset" at runtime, not as an error.
+SHARED_OPTIONS = %w[STYLE EXTRA].freeze
+engine_reads = {
+  "claude-summarize.swift" => read("claude-summarize.swift").scan(/\boption\("([A-Z0-9_]+)"\)/).flatten,
+  "apple-intelligence.swift" => read("apple-intelligence.swift").scan(/POPCLIP_OPTION_([A-Z0-9_]+)/).flatten,
+}
+providers = read("responses-summarize.swift").scan(/"([a-z]+)": Provider\((.*?)\n    \),/m).to_h do |id, body|
+  [id, body.scan(/(?:keyOption|modelOption|customModelOption): "([A-Z0-9_]+)"/).flatten]
+end
+shared_responses = read("responses-summarize.swift").scan(/\boption\("([A-Z0-9_]+)"\)/).flatten
+wrapper_count = 0
+Dir[File.join(EXT, "summarize-*.sh")].sort.each do |path|
+  wrapper = File.read(path)
+  file = File.basename(path)
+  call = wrapper.match(/run_engine "\$engine" "([A-Z0-9_ ]*)"(?: --provider ([a-z]+))?/)
+  next fail!("#{file}: no run_engine \"$engine\" \"<OPTION IDS>\" call found") unless call
+
+  wrapper_count += 1
+  source = wrapper[/build_cached "\$\{EXT_DIR\}\/([a-z-]+\.swift)"/, 1]
+  if call[2] && !providers.key?(call[2])
+    fail!("#{file}: run_engine names unknown provider #{call[2]}")
+    next
+  end
+  needed = if call[2]
+             providers[call[2]] + shared_responses
+           else
+             engine_reads.fetch(source, [])
+           end
+  missing = needed.uniq - SHARED_OPTIONS - call[1].split
+  missing.each { |id| fail!("#{file}: #{source} reads option #{id.downcase} but run_engine doesn't pass it") }
+end
+
 if $failures.empty?
-  puts "    #{references.size} option references, #{defaults.size} default models, #{blocks.size} prompt blocks agree"
+  puts "    #{references.size} option references, #{defaults.size} default models, #{blocks.size} prompt blocks, #{wrapper_count} wrapper option lists agree"
 else
   $failures.each { |f| warn "    FAIL: #{f}" }
   exit 1
