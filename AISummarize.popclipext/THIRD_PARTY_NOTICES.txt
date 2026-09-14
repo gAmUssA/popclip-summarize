@@ -1,0 +1,55 @@
+THIRD-PARTY NOTICES — AI Summarize (PopClip extension)
+=====================================================
+
+This package includes material from the project listed below. It is kept as
+a separate file because PopClip Directory downloads omit README files.
+
+
+OpenUsage — provider icon artwork
+---------------------------------
+
+Source:   https://github.com/robinebers/openusage
+License:  MIT (full text below)
+
+Files included, with their upstream paths and the last upstream commit that
+changed each one:
+
+  claude.svg  <- Sources/OpenUsage/Resources/ProviderIcons/claude.svg
+                 commit 53bc2f0f61e3e1c3575df2c573e4da7c55110eb6
+  openai.svg  <- Sources/OpenUsage/Resources/ProviderIcons/codex.svg
+                 commit 53bc2f0f61e3e1c3575df2c573e4da7c55110eb6
+  grok.svg    <- Sources/OpenUsage/Resources/ProviderIcons/grok.svg
+                 commit c3777d5929d14ea4b736939692c2dff7cc9e138e
+
+Modifications: the `fill="currentColor"` attributes were changed to
+`fill="#000000"` in all three files, and grok.svg's viewBox was changed from
+"0 0 34.06 33" to "0 -0.53 34.06 34.06" to make its canvas square. Path data is
+unchanged.
+
+The MIT license covers the files above. It does not grant rights in the
+trademarks they depict: Claude and the Claude logo are trademarks of Anthropic;
+OpenAI and the OpenAI logo are trademarks of OpenAI; Grok and xAI marks are
+trademarks of xAI. They are used only to identify which service each action
+calls. AI Summarize is not affiliated with, or endorsed by, any of them.
+
+MIT License
+
+Copyright (c) 2026 Robin Ebers
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

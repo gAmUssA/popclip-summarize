@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cloud engines refuse HTTP redirects, so neither the API key nor the selection
   can be forwarded to another host.
 
+### Packaging
+
+- The extension now carries its own `LICENSE` and a `THIRD_PARTY_NOTICES.txt`
+  (icon sources, exact modifications, trademark notice), so both survive in
+  downloads that omit the README.
+
 ### Changed
 
 - **Summaries no longer answer or obey the selected text.** The prompt now

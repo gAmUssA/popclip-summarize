@@ -149,7 +149,8 @@ AISummarize.popclipext/
 ├── responses-summarize.swift # engine → Responses API, for OpenAI and xAI (--provider)
 ├── apple-intelligence.swift  # engine → FoundationModels (on-device)
 ├── summary-window.swift      # the result panel and large type (AppKit)
-└── claude.svg, openai.svg, grok.svg  # action icons (see License)
+├── claude.svg, openai.svg, grok.svg  # action icons (see License)
+└── LICENSE, THIRD_PARTY_NOTICES.txt  # shipped inside the package
 ```
 
 All actions are `shell script file` actions, and `Config.yaml` says why in its
@@ -230,4 +231,6 @@ Not affiliated with Pilotmoon Software, Anthropic, OpenAI, or xAI.
 The Claude, OpenAI, and Grok marks in `claude.svg`, `openai.svg`, and `grok.svg` come from
 [OpenUsage](https://github.com/robinebers/openusage) (MIT, Copyright (c) 2026
 Robin Ebers) and are trademarks of Anthropic, OpenAI, and xAI respectively. They are
-used only to identify which service each action calls.
+used only to identify which service each action calls. Exact upstream paths, commits, and
+modifications are in `AISummarize.popclipext/THIRD_PARTY_NOTICES.txt`, which ships
+inside the extension along with its `LICENSE`.

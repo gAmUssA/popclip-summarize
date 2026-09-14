@@ -49,6 +49,16 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 		r = d["shellScriptRationale"].to_s.strip; \
 		abort "    FAIL: shell-script actions need a top-level shellScriptRationale (20+ characters)" if r.length < 20; \
 		puts "    #{r.length} characters"'
+	@echo "==> license and third-party notices ship inside the package"
+	@# Directory downloads drop README files, so notices must be files of their own.
+	@for f in LICENSE THIRD_PARTY_NOTICES.txt; do \
+		test -s "$(EXT)/$$f" || (echo "    FAIL: $(EXT)/$$f is missing" && exit 1); \
+	done
+	@cmp -s LICENSE $(EXT)/LICENSE || (echo "    FAIL: $(EXT)/LICENSE differs from the root LICENSE" && exit 1)
+	@for f in $(EXT)/*.svg; do \
+		grep -q "$$(basename $$f)" $(EXT)/THIRD_PARTY_NOTICES.txt \
+			|| (echo "    FAIL: $$f is not listed in THIRD_PARTY_NOTICES.txt" && exit 1); \
+	done
 	@echo "==> every action script named in Config.yaml exists"
 	@ruby -ryaml -e 'YAML.load_file("$(EXT)/Config.yaml")["actions"].each { |a| \
 		f = a["shell script file"] or abort "action #{a["title"]} has no shell script file"; \
