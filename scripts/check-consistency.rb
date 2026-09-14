@@ -64,13 +64,24 @@ defaults.each do |id, where|
     fail!("#{id}: default #{config_default.inspect} is not one of its values")
   end
 
-  wrapper_default = where[:wrapper] && read(where[:wrapper])[/POPCLIP_OPTION_#{id.upcase}:-([^}]+)\}/, 1]
-  { "Config.yaml" => config_default, where[:wrapper] || "wrapper (not found)" => wrapper_default,
-    where[:engine_file] => where[:engine] }.each do |place, value|
+  # Every fallback in the wrapper, not just the first: a wrapper can mention the
+  # same option in a title as well as in the assignment that matters.
+  wrapper_defaults = where[:wrapper] ? read(where[:wrapper]).scan(/POPCLIP_OPTION_#{id.upcase}:-([^}]+)\}/).flatten : []
+  fail!("#{id}: no POPCLIP_OPTION_#{id.upcase}:- fallback found in #{where[:wrapper] || 'any wrapper'}") if wrapper_defaults.empty?
+  places = [["Config.yaml", config_default], [where[:engine_file], where[:engine]]] +
+           wrapper_defaults.map { |value| [where[:wrapper], value] }
+  places.each do |place, value|
     next if value == config_default
 
     fail!("#{id}: default is #{config_default.inspect} in Config.yaml but #{value.inspect} in #{place}")
   end
+end
+
+read("cli-summarize.swift").scan(/"([a-z]+)": CLIModel\(model: "([A-Z0-9_]+)", customModel: "[A-Z0-9_]+", defaultModel: "([^"]+)"\)/) do |(cli, id, model)|
+  config_default = OPTIONS.dig(id.downcase, "default value")
+  next if model == config_default
+
+  fail!("#{id.downcase}: default is #{config_default.inspect} in Config.yaml but #{model.inspect} in cli-summarize.swift (--cli #{cli})")
 end
 
 # 3. The prompt block is identical in every engine — the engines are meant to
@@ -98,6 +109,10 @@ engine_reads = {
   "apple-intelligence.swift" => read("apple-intelligence.swift").scan(/POPCLIP_OPTION_([A-Z0-9_]+)/).flatten,
   "cli-summarize.swift" => read("cli-summarize.swift").scan(/\boption\("([A-Z0-9_]+)"\)/).flatten,
 }
+# CLI backends read their model options through a table keyed by --cli.
+cli_models = read("cli-summarize.swift").scan(
+  /"([a-z]+)": CLIModel\(model: "([A-Z0-9_]+)", customModel: "([A-Z0-9_]+)", defaultModel: "([^"]+)"\)/
+).to_h { |cli, model, custom, default| [cli, { options: [model, custom], default: default, model: model }] }
 providers = read("responses-summarize.swift").scan(/"([a-z]+)": Provider\((.*?)\n    \),/m).to_h do |id, body|
   [id, body.scan(/(?:keyOption|modelOption|customModelOption): "([A-Z0-9_]+)"/).flatten]
 end
@@ -109,17 +124,25 @@ Dir[File.join(EXT, "summarize-*.sh")].sort.each do |path|
   # A wrapper may build several engines (e.g. API and CLI backends): pair each
   # run_engine call with the build_cached assignment of the variable it runs.
   sources = wrapper.scan(/(\w+)="\$\(build_cached "\$\{EXT_DIR\}\/([a-z-]+\.swift)"\)"/).to_h
-  calls = wrapper.scan(/run_engine "\$(\w+)" "([A-Z0-9_ ]*)"(?: --provider ([a-z]+))?/)
+  calls = wrapper.scan(/run_engine "\$(\w+)" "([A-Z0-9_ ]*)"(?: --(provider|cli) ([a-z]+))?/)
   next fail!("#{file}: no run_engine \"$engine\" \"<OPTION IDS>\" call found") if calls.empty?
 
-  calls.each do |var, passed, provider|
+  calls.each do |var, passed, flag, value|
     wrapper_count += 1
     source = sources[var] or next fail!("#{file}: run_engine runs $#{var}, which isn't assigned from build_cached")
+    provider = value if flag == "provider"
+    cli = value if flag == "cli"
     if provider && !providers.key?(provider)
       fail!("#{file}: run_engine names unknown provider #{provider}")
       next
     end
-    needed = provider ? providers[provider] + shared_responses : engine_reads.fetch(source, [])
+    needed = if provider
+               providers[provider] + shared_responses
+             elsif cli
+               engine_reads.fetch(source, []) + cli_models.fetch(cli, { options: [] })[:options]
+             else
+               engine_reads.fetch(source, [])
+             end
     missing = needed.uniq - SHARED_OPTIONS - passed.split
     missing.each { |id| fail!("#{file}: #{source} reads option #{id.downcase} but run_engine doesn't pass it") }
   end

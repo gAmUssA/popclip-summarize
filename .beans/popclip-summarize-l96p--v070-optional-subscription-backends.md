@@ -5,7 +5,7 @@ status: in-progress
 type: milestone
 priority: normal
 created_at: 2026-09-14T22:22:38Z
-updated_at: 2026-09-14T23:05:02Z
+updated_at: 2026-09-14T23:28:35Z
 ---
 
 Let users who already pay for a consumer plan summarize without a pay-as-you-go API key, by driving the provider's **official, user-installed, user-logged-in CLI** — never by extracting or reusing OAuth tokens. API-key engines stay the default.

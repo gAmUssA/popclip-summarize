@@ -22,6 +22,22 @@ options:
     type: heading
     label: Claude
 
+  - identifier: claudebackend
+    type: multiple
+    label: Backend
+    default value: api
+    values:
+      - api
+      - claude-code
+    value labels:
+      - API key (pay as you go)
+      - Claude Code with your Claude plan (experimental)
+    description: >-
+      Experimental: uses the Claude Code you installed and logged in to with
+      your Claude account, with every tool, hook, plugin, and MCP server turned
+      off. Uses the Model setting below and counts against your plan's usage
+      limits. The API key below is ignored in this mode.
+
   - identifier: apikey
     type: secret
     label: API Key

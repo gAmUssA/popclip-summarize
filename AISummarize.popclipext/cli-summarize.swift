@@ -2,11 +2,11 @@
 //  cli-summarize.swift — Summarize the selected text through a provider's own
 //  command-line agent, signed in with the user's subscription plan.
 //
-//  Usage: cli-summarize --cli codex
+//  Usage: cli-summarize --cli codex|claude
 //
 //  Experimental. Instead of an API key, this runs the official CLI the user
-//  installed and signed in to themselves (for Codex: `codex login` with a
-//  ChatGPT account). Authentication never leaves that CLI: this program never
+//  installed and signed in to themselves: Codex with a ChatGPT account, or
+//  Claude Code with a Claude account. Authentication never leaves that CLI: this program never
 //  reads its credentials, only asks it for its sign-in status. Every agent tool
 //  is switched off, so the CLI can only turn the selection into text.
 //
@@ -65,9 +65,21 @@ while let flag = arguments.first {
         arguments.removeFirst()
     }
 }
-guard cliName == "codex" else {
-    fail("Unknown CLI '\(cliName)'. Expected: codex.")
+guard ["codex", "claude"].contains(cliName) else {
+    fail("Unknown CLI '\(cliName)'. Expected: codex or claude.")
 }
+
+/// Model settings a CLI honors, as PopClip option identifiers. Codex picks its
+/// own plan model; Claude Code takes the same model IDs as the Claude API, so
+/// the Claude action's Model settings carry over.
+struct CLIModel {
+    let model: String
+    let customModel: String
+    let defaultModel: String
+}
+let cliModels: [String: CLIModel] = [
+    "claude": CLIModel(model: "MODEL", customModel: "CUSTOMMODEL", defaultModel: "claude-haiku-4-5"),
+]
 
 // MARK: - Prompt
 
@@ -110,16 +122,32 @@ let framedSelection = "Source text to summarize:\n<source>\n\(selectedText)\n</s
 
 // MARK: - Locating the CLI
 
-/// Where the Codex CLI is commonly installed. PopClip gives actions no login
-/// shell PATH, and sourcing the user's shell profile to find one would run
-/// arbitrary startup code, so look in the usual places instead.
-let codexCandidates = [
-    "/opt/homebrew/bin/codex",
-    "/usr/local/bin/codex",
-    "\(home)/.local/bin/codex",
-    "\(home)/.npm-global/bin/codex",
-    "\(home)/.volta/bin/codex",
-    "\(home)/.bun/bin/codex",
+/// Where each CLI is commonly installed. PopClip gives actions no login shell
+/// PATH, and sourcing the user's shell profile to find one would run arbitrary
+/// startup code, so look in the usual places instead.
+let cliCandidates: [String: [String]] = [
+    "codex": [
+        "/opt/homebrew/bin/codex",
+        "/usr/local/bin/codex",
+        "\(home)/.local/bin/codex",
+        "\(home)/.npm-global/bin/codex",
+        "\(home)/.volta/bin/codex",
+        "\(home)/.bun/bin/codex",
+    ],
+    "claude": [
+        "\(home)/.local/bin/claude",
+        "\(home)/.claude/local/claude",
+        "/opt/homebrew/bin/claude",
+        "/usr/local/bin/claude",
+        "\(home)/.npm-global/bin/claude",
+        "\(home)/.volta/bin/claude",
+        "\(home)/.bun/bin/claude",
+    ],
+]
+
+let installHelp: [String: String] = [
+    "codex": "The Codex CLI isn't installed. Install it (for example `brew install codex` or `npm install -g @openai/codex`), run `codex login` with your ChatGPT account, then try again. Or switch the OpenAI backend back to API key.",
+    "claude": "Claude Code isn't installed. Install it from https://claude.com/claude-code, run `claude` once and log in with your Claude account, then try again. Or switch the Claude backend back to API key.",
 ]
 
 /// Tests only: `AI_SUMMARIZE_TEST_CLI` substitutes a fake CLI, accepted only
@@ -139,19 +167,18 @@ func testCLIPath() -> String? {
     return path
 }
 
-guard let codexPath = testCLIPath() ?? codexCandidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
-    fail(
-        "The Codex CLI isn't installed. Install it (for example `brew install codex` or `npm install -g @openai/codex`), run `codex login` with your ChatGPT account, then try again. Or switch the OpenAI backend back to API key.",
-        settings: true
-    )
+guard let cliPath = testCLIPath()
+    ?? cliCandidates[cliName, default: []].first(where: { FileManager.default.isExecutableFile(atPath: $0) })
+else {
+    fail(installHelp[cliName, default: "\(cliName) isn't installed."], settings: true)
 }
 
 /// The child's PATH: the CLI's own folder first (an npm-installed codex is a
 /// `node` script and needs `node` beside it), then the usual system folders.
 let childPath: String = {
-    var dirs = [(codexPath as NSString).deletingLastPathComponent]
-    let resolved = (try? FileManager.default.destinationOfSymbolicLink(atPath: codexPath))
-        .map { URL(fileURLWithPath: $0, relativeTo: URL(fileURLWithPath: codexPath).deletingLastPathComponent()).standardizedFileURL.deletingLastPathComponent().path }
+    var dirs = [(cliPath as NSString).deletingLastPathComponent]
+    let resolved = (try? FileManager.default.destinationOfSymbolicLink(atPath: cliPath))
+        .map { URL(fileURLWithPath: $0, relativeTo: URL(fileURLWithPath: cliPath).deletingLastPathComponent()).standardizedFileURL.deletingLastPathComponent().path }
     if let resolved { dirs.append(resolved) }
     dirs += ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
     var seen = Set<String>()
@@ -159,9 +186,13 @@ let childPath: String = {
 }()
 
 /// The child environment. No API keys and no PopClip values: an OPENAI_API_KEY
-/// here could silently switch the CLI from the user's plan to API billing.
+/// or ANTHROPIC_API_KEY here would silently switch the CLI from the user's plan
+/// to API billing. USER and LOGNAME are needed for Claude Code to find its
+/// sign-in in the login Keychain.
 let childEnvironment: [String: String] = [
     "HOME": home,
+    "USER": environment["USER"] ?? NSUserName(),
+    "LOGNAME": environment["LOGNAME"] ?? NSUserName(),
     "TMPDIR": environment["TMPDIR"] ?? NSTemporaryDirectory(),
     "PATH": childPath,
     "LANG": environment["LANG"] ?? "en_US.UTF-8",
@@ -180,7 +211,8 @@ struct RunResult {
 /// `timeout` passes. The child gets its own process group so a timeout can stop
 /// everything it started, not just the first process. Each stream keeps only
 /// its last `limit` bytes: the events that decide success come at the end.
-func run(_ path: String, _ args: [String], input: Data, timeout: TimeInterval, limit: Int = 4 << 20) -> RunResult {
+func run(_ path: String, _ args: [String], input: Data, timeout: TimeInterval,
+         directory: String? = nil, limit: Int = 4 << 20) -> RunResult {
     var inPipe: [Int32] = [0, 0], outPipe: [Int32] = [0, 0], errPipe: [Int32] = [0, 0]
     guard pipe(&inPipe) == 0, pipe(&outPipe) == 0, pipe(&errPipe) == 0 else {
         fail("Could not create pipes to run \(cliName).")
@@ -192,6 +224,12 @@ func run(_ path: String, _ args: [String], input: Data, timeout: TimeInterval, l
     posix_spawn_file_actions_adddup2(&actions, outPipe[1], 1)
     posix_spawn_file_actions_adddup2(&actions, errPipe[1], 2)
     for fd in inPipe + outPipe + errPipe { posix_spawn_file_actions_addclose(&actions, fd) }
+    if let directory {
+        // Claude Code has no --cd flag; it works in its current directory. The
+        // _np variant, though deprecated in macOS 26, is the only one older SDKs
+        // declare — and users compile this with whatever SDK they have.
+        posix_spawn_file_actions_addchdir_np(&actions, directory)
+    }
 
     var attributes: posix_spawnattr_t? = nil
     posix_spawnattr_init(&attributes)
@@ -302,111 +340,188 @@ func cleanExit(_ message: String, settings: Bool = false) -> Never {
     fail(message, settings: settings)
 }
 
-// Sign-in first: it answers in a tenth of a second, while a signed-out
-// `codex exec` spends ~15 s retrying 401s before giving up.
-let status = run(codexPath, ["login", "status"], input: Data(), timeout: 15)
-let statusText = String(decoding: status.stdout + status.stderr, as: UTF8.self)
-    .trimmingCharacters(in: .whitespacesAndNewlines)
-if status.status != 0 {
-    cleanExit("Codex isn't signed in. Run `codex login` in Terminal and sign in with your ChatGPT account, then try again.")
-}
-if !statusText.localizedCaseInsensitiveContains("chatgpt") {
-    // Signed in with an API key would bill the API account — exactly what this
-    // backend exists to avoid. Don't do it silently.
-    cleanExit(
-        "Codex is signed in with an API key (\(statusText)), not a ChatGPT plan. Run `codex login` and choose Sign in with ChatGPT, or switch the OpenAI backend to API key.",
-        settings: true
-    )
-}
+// MARK: - Codex
 
-/// Every Codex feature that could act rather than write text. Verified: with
-/// these off the agent cannot read a file even when told to; with them on it can.
-let disabledFeatures = [
-    "shell_tool", "unified_exec", "unified_exec_tty", "shell_snapshot", "apps", "plugins",
-    "remote_plugin", "browser_use", "browser_use_external", "in_app_browser", "computer_use",
-    "hooks", "multi_agent", "image_generation", "view_image", "goals", "skill_search",
-    "tool_suggest", "sleep_tool", "code_mode_host", "workspace_dependencies",
-    "skill_mcp_dependency_install", "personality",
-]
+func summarizeWithCodex() -> String {
+    // Sign-in first: it answers in a tenth of a second, while a signed-out
+    // `codex exec` spends ~15 s retrying 401s before giving up.
+    let status = run(cliPath, ["login", "status"], input: Data(), timeout: 15)
+    let statusText = String(decoding: status.stdout + status.stderr, as: UTF8.self)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    if status.status != 0 {
+        cleanExit("Codex isn't signed in. Run `codex login` in Terminal and sign in with your ChatGPT account, then try again.")
+    }
+    if !statusText.localizedCaseInsensitiveContains("chatgpt") {
+        // Signed in with an API key would bill the API account — exactly what this
+        // backend exists to avoid. Don't do it silently.
+        cleanExit(
+            "Codex is signed in with an API key (\(statusText)), not a ChatGPT plan. Run `codex login` and choose Sign in with ChatGPT, or switch the OpenAI backend to API key.",
+            settings: true
+        )
+    }
 
-/// A TOML basic string, which is what `-c key=value` parses.
-func tomlString(_ value: String) -> String {
-    let data = try! JSONSerialization.data(withJSONObject: [value], options: [.withoutEscapingSlashes])
-    let array = String(decoding: data, as: UTF8.self)
-    // JSON's escapes are valid TOML basic-string escapes, and JSON escapes every
-    // control character below U+0020. TOML also forbids a literal DEL, which
-    // JSON leaves alone.
-    return String(array.dropFirst().dropLast()).replacingOccurrences(of: "\u{7F}", with: "\\u007F")
-}
+    /// Every Codex feature that could act rather than write text. Verified: with
+    /// these off the agent cannot read a file even when told to; with them on it can.
+    let disabledFeatures = [
+        "shell_tool", "unified_exec", "unified_exec_tty", "shell_snapshot", "apps", "plugins",
+        "remote_plugin", "browser_use", "browser_use_external", "in_app_browser", "computer_use",
+        "hooks", "multi_agent", "image_generation", "view_image", "goals", "skill_search",
+        "tool_suggest", "sleep_tool", "code_mode_host", "workspace_dependencies",
+        "skill_mcp_dependency_install", "personality",
+    ]
 
-var execArguments = [
-    "exec", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules",
-    "--sandbox", "read-only", "--cd", workDirectory.path, "--json", "--color", "never",
-    "-c", "developer_instructions=\(tomlString(instructionLines.joined(separator: " ")))",
-    "-c", "model_reasoning_effort=\"low\"",
-    "-c", "web_search=\"disabled\"",
-]
-for feature in disabledFeatures { execArguments += ["--disable", feature] }
-execArguments.append("-")  // the prompt is stdin: the selection never appears in argv
+    /// A TOML basic string, which is what `-c key=value` parses.
+    func tomlString(_ value: String) -> String {
+        let data = try! JSONSerialization.data(withJSONObject: [value], options: [.withoutEscapingSlashes])
+        let array = String(decoding: data, as: UTF8.self)
+        // JSON's escapes are valid TOML basic-string escapes, and JSON escapes every
+        // control character below U+0020. TOML also forbids a literal DEL, which
+        // JSON leaves alone.
+        return String(array.dropFirst().dropLast()).replacingOccurrences(of: "\u{7F}", with: "\\u007F")
+    }
 
-let result = run(codexPath, execArguments,
-                 input: Data(framedSelection.utf8), timeout: 90)
+    var execArguments = [
+        "exec", "--skip-git-repo-check", "--ephemeral", "--ignore-user-config", "--ignore-rules",
+        "--sandbox", "read-only", "--cd", workDirectory.path, "--json", "--color", "never",
+        "-c", "developer_instructions=\(tomlString(instructionLines.joined(separator: " ")))",
+        "-c", "model_reasoning_effort=\"low\"",
+        "-c", "web_search=\"disabled\"",
+    ]
+    for feature in disabledFeatures { execArguments += ["--disable", feature] }
+    execArguments.append("-")  // the prompt is stdin: the selection never appears in argv
 
-if result.timedOut {
-    cleanExit("Codex didn't finish within 90 seconds. Try again, or switch the OpenAI backend to API key.")
-}
+    let result = run(cliPath, execArguments,
+                     input: Data(framedSelection.utf8), timeout: 90)
 
-// MARK: - Events
+    if result.timedOut {
+        cleanExit("Codex didn't finish within 90 seconds. Try again, or switch the OpenAI backend to API key.")
+    }
 
-var summary = ""
-var completed = false
-var failure = ""
-for line in String(decoding: result.stdout, as: UTF8.self).split(separator: "\n") {
-    guard let event = (try? JSONSerialization.jsonObject(with: Data(line.utf8))) as? [String: Any] else { continue }
-    switch event["type"] as? String {
-    case "item.completed":
-        let item = event["item"] as? [String: Any] ?? [:]
-        switch item["type"] as? String {
-        case "agent_message":
-            summary = (item["text"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    // MARK: - Events
+
+    var summary = ""
+    var completed = false
+    var failure = ""
+    for line in String(decoding: result.stdout, as: UTF8.self).split(separator: "\n") {
+        guard let event = (try? JSONSerialization.jsonObject(with: Data(line.utf8))) as? [String: Any] else { continue }
+        switch event["type"] as? String {
+        case "item.completed":
+            let item = event["item"] as? [String: Any] ?? [:]
+            switch item["type"] as? String {
+            case "agent_message":
+                summary = (item["text"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            case "error":
+                let message = item["message"] as? String ?? ""
+                // Expected with code mode disabled; not a failure.
+                if !message.contains("Code Mode is unavailable") { failure = message }
+            default:
+                break
+            }
+        case "turn.completed":
+            completed = true
+        case "turn.failed":
+            failure = ((event["error"] as? [String: Any])?["message"] as? String) ?? "the turn failed"
         case "error":
-            let message = item["message"] as? String ?? ""
-            // Expected with code mode disabled; not a failure.
-            if !message.contains("Code Mode is unavailable") { failure = message }
+            failure = event["message"] as? String ?? failure
         default:
             break
         }
-    case "turn.completed":
-        completed = true
-    case "turn.failed":
-        failure = ((event["error"] as? [String: Any])?["message"] as? String) ?? "the turn failed"
-    case "error":
-        failure = event["message"] as? String ?? failure
-    default:
-        break
     }
+
+    guard completed, !summary.isEmpty, result.status == 0 else {
+        let detail = failure.isEmpty
+            ? String(decoding: result.stderr, as: UTF8.self).split(separator: "\n").last.map(String.init) ?? ""
+            : failure
+        let lowered = detail.lowercased()
+        if lowered.contains("401") || lowered.contains("unauthorized") {
+            cleanExit("Codex's ChatGPT sign-in was rejected. Run `codex login` again, then try again.")
+        }
+        if lowered.contains("usage limit") || lowered.contains("rate limit") || lowered.contains("429")
+            || lowered.contains("quota") {
+            cleanExit("You've reached your ChatGPT plan's Codex usage limit. \(detail)")
+        }
+        if completed && !summary.isEmpty {
+            cleanExit("Codex wrote a summary but then exited with an error (status \(result.status)), so it wasn't used. Try again. \(detail)")
+        }
+        if completed || (result.status == 0 && detail.isEmpty) {
+            cleanExit("Codex finished without writing a summary. Try again.")
+        }
+        cleanExit("Codex couldn't summarize this (exit \(result.status)). \(detail)")
+    }
+    return summary
 }
 
-guard completed, !summary.isEmpty, result.status == 0 else {
-    let detail = failure.isEmpty
-        ? String(decoding: result.stderr, as: UTF8.self).split(separator: "\n").last.map(String.init) ?? ""
-        : failure
-    let lowered = detail.lowercased()
-    if lowered.contains("401") || lowered.contains("unauthorized") {
-        cleanExit("Codex's ChatGPT sign-in was rejected. Run `codex login` again, then try again.")
+// MARK: - Claude Code
+
+func summarizeWithClaude() -> String {
+    // Sign-in first, and only a Claude account: an API-key or Console login
+    // would bill the API, which is exactly what this backend exists to avoid.
+    let status = run(cliPath, ["auth", "status", "--json"], input: Data(), timeout: 15)
+    let auth = (try? JSONSerialization.jsonObject(with: status.stdout)) as? [String: Any] ?? [:]
+    guard auth["loggedIn"] as? Bool == true else {
+        cleanExit("Claude Code isn't signed in. Run `claude` in Terminal and log in with your Claude account, then try again.")
     }
-    if lowered.contains("usage limit") || lowered.contains("rate limit") || lowered.contains("429")
-        || lowered.contains("quota") {
-        cleanExit("You've reached your ChatGPT plan's Codex usage limit. \(detail)")
+    let method = auth["authMethod"] as? String ?? "unknown"
+    guard method == "claude.ai" else {
+        cleanExit(
+            "Claude Code is signed in with \(method), not a Claude plan. Run `claude auth login` and choose your Claude account, or switch the Claude backend to API key.",
+            settings: true
+        )
     }
-    if completed && !summary.isEmpty {
-        cleanExit("Codex wrote a summary but then exited with an error (status \(result.status)), so it wasn't used. Try again. \(detail)")
+
+    let models = cliModels["claude"]!
+    let model = option(models.customModel).isEmpty
+        ? (option(models.model).isEmpty ? models.defaultModel : option(models.model))
+        : option(models.customModel)
+
+    // Verified: with these, Claude Code cannot read a file even when its system
+    // prompt tells it to; without them it can. No settings sources means the
+    // user's hooks, plugins, and permissions never load; no MCP servers either.
+    let arguments = [
+        "-p", "--output-format", "json", "--no-session-persistence",
+        "--model", model,
+        "--system-prompt", instructionLines.joined(separator: " "),
+        "--tools", "",
+        "--setting-sources", "",
+        "--strict-mcp-config", "--mcp-config", #"{"mcpServers":{}}"#,
+        "--disable-slash-commands",
+    ]
+    let result = run(cliPath, arguments, input: Data(framedSelection.utf8), timeout: 90,
+                     directory: workDirectory.path)
+
+    if result.timedOut {
+        cleanExit("Claude Code didn't finish within 90 seconds. Try again, or switch the Claude backend to API key.")
     }
-    if completed || (result.status == 0 && detail.isEmpty) {
-        cleanExit("Codex finished without writing a summary. Try again.")
+
+    let output = (try? JSONSerialization.jsonObject(with: result.stdout)) as? [String: Any] ?? [:]
+    let text = (output["result"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    let isError = output["is_error"] as? Bool ?? true
+    guard result.status == 0, !isError, output["subtype"] as? String == "success", !text.isEmpty else {
+        let detail = text.isEmpty
+            ? String(decoding: result.stderr, as: UTF8.self).split(separator: "\n").last.map(String.init) ?? ""
+            : text
+        let lowered = detail.lowercased()
+        if lowered.contains("limit") && (lowered.contains("usage") || lowered.contains("reset") || lowered.contains("reached")) {
+            cleanExit("You've reached your Claude plan's usage limit. \(detail)")
+        }
+        if lowered.contains("401") || lowered.contains("authentication") || lowered.contains("log in") || lowered.contains("login") {
+            cleanExit("Claude Code's sign-in was rejected. Run `claude auth login`, then try again. \(detail)")
+        }
+        // Real Claude Code wording (2.1.271): "There's an issue with the selected
+        // model (…). It may not exist or you may not have access to it."
+        if lowered.contains("model") && (lowered.contains("not found") || lowered.contains("invalid")
+            || lowered.contains("not available") || lowered.contains("may not exist")
+            || lowered.contains("issue with the selected model")) {
+            cleanExit("Claude Code can't use model '\(model)'. Check the Claude Model / Custom Model setting. \(detail)", settings: true)
+        }
+        if output.isEmpty && result.status == 0 {
+            cleanExit("Claude Code returned output that couldn't be read. Try again.")
+        }
+        cleanExit("Claude Code couldn't summarize this (exit \(result.status)). \(detail)")
     }
-    cleanExit("Codex couldn't summarize this (exit \(result.status)). \(detail)")
+    return text
 }
 
+let summary = cliName == "claude" ? summarizeWithClaude() : summarizeWithCodex()
 try? FileManager.default.removeItem(at: workDirectory)
 print(summary, terminator: "")

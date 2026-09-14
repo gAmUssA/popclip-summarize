@@ -30,7 +30,24 @@ Needs macOS 13 or later for the cloud actions. Tested on macOS 26.
 
 Hide the actions you don't use in the settings.
 
-### Experimental: OpenAI with your ChatGPT plan
+### Experimental: use your Claude or ChatGPT plan
+
+Instead of an API key, the Claude and OpenAI actions can run the command-line
+tool you've installed and logged in to with your own subscription, on your Mac.
+
+| Action | Set its **Backend** to | Sign in once with | Typical time |
+|---|---|---|---|
+| Claude | *Claude Code with your Claude plan* | `claude` (log in with your Claude account) | 3–4 s on Sonnet 5, 5–8 s on Haiku 4.5 |
+| OpenAI | *Codex CLI with your ChatGPT plan* | `codex login` (Sign in with ChatGPT) | about 5 s |
+
+- Each summary counts against your plan's usage limits.
+- The tool runs with every tool, hook, plugin, and connector turned off, in an
+  empty temporary folder, so it can only read the text you selected.
+- The extension never reads your sign-in; it only asks the tool whether you're
+  signed in with your plan, and refuses to run if it's using an API key instead.
+- It's meant for your own plan on your own Mac. Each provider's terms apply.
+
+#### OpenAI with your ChatGPT plan
 
 Instead of an API key, the OpenAI action can use the
 [Codex CLI](https://developers.openai.com/codex/) you've installed and signed in
@@ -72,9 +89,10 @@ clipboard.
   engine.
 - OpenAI and Grok requests ask the provider not to store the request
   (`store: false`). Each provider's own data-retention policy still applies.
-- **With the experimental Codex backend**, the selection goes to OpenAI through
-  your ChatGPT account, and ChatGPT's data controls apply: your content may be
-  used to improve models unless you turn that off in ChatGPT's settings.
+- **With the experimental plan backends**, the selection goes to Anthropic or
+  OpenAI through your Claude or ChatGPT account, and that account's data
+  controls apply: your content may be used to improve models unless you turn
+  that off in Claude's or ChatGPT's privacy settings.
 - **Apple Intelligence** runs entirely on your Mac. Nothing leaves it.
 - The extension keeps no history. The summary is placed on the clipboard, and a
   temporary copy used to open the panel is deleted as soon as the panel reads it.
@@ -89,7 +107,8 @@ clipboard.
   that model.
 - **"Rate limited"** or **"having trouble"**: short hiccups are retried
   automatically. If the message still appears, wait as long as it suggests.
-- **"Codex isn't signed in"** or **"sign-in was rejected"**: run `codex login` in
+- **"Claude Code isn't signed in"**: run `claude` in Terminal and log in.
+  **"Codex isn't signed in"** or **"sign-in was rejected"**: run `codex login` in
   Terminal. **"signed in with an API key"**: sign in with ChatGPT instead, or
   switch the Backend back to API key.
 - **"Selection is too long for the on-device model": Apple Intelligence handles

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Experimental: summarize with your Claude plan.** Set **Claude › Backend** to
+  *Claude Code* to use the Claude Code you've installed and logged in to with
+  your Claude account, instead of an API key. It runs with no tools, settings
+  sources, hooks, plugins, or MCP servers, in an empty temporary folder; uses
+  your Claude Model setting; and refuses to run if Claude Code is logged in with
+  an API key. Off by default.
 - **Experimental: summarize with your ChatGPT plan.** Set **OpenAI › Backend**
   to *Codex CLI* to use the Codex CLI you've installed and signed in to with
   ChatGPT, instead of an API key. Codex runs with every tool disabled, in an
