@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of "Claude returned an empty summary." ChatGPT and Grok report malformed
   responses the same way, and every cloud engine says when a provider didn't respond
   in time.
+- The Apple Intelligence prompt now matches the cloud engines' exactly (it was
+  missing the no-surrounding-quotes rule). `make check` now fails when option
+  names, default models, or the prompt drift between Config, wrappers, and
+  engines.
 
 ## [0.4.0] - 2026-09-14
 

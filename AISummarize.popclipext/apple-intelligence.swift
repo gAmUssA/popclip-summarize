@@ -88,7 +88,7 @@ var instructionLines = [
     "Do not reuse whole sentences from the source; rewrite in your own words.",
     "Keep only load-bearing facts: who, what, when, and any figures.",
     "Drop background, asides, and repetition.",
-    "Reply with the summary only: no preamble, no heading, no commentary.",
+    "Reply with the summary only: no preamble, no heading, no commentary, and no surrounding quotation marks.",
 ]
 if !extraInstructions.isEmpty {
     instructionLines.append(extraInstructions)

@@ -53,6 +53,8 @@ check: ## Validate config, scripts, and permissions (runs in CI)
 		d["actions"].each { |a| (a["requirements"] || []).each { |r| \
 			id = r[/\Aoption-([^=]+)/, 1] or next; \
 			abort "action #{a["title"]} requires undeclared option #{id}" unless ids.include?(id) } }'
+	@echo "==> Config, wrappers, and engines agree (options, default models, prompt)"
+	@ruby scripts/check-consistency.rb
 	@echo "==> all checks passed"
 
 .PHONY: check-full
