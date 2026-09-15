@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Submitted to the [PopClip Directory](https://www.popclip.app/extensions/):
   `popclip-directory.yaml` opts the extension in, so each version tag submits
   it for review. `make check` verifies the opt-in covers the package.
+- **Diagnostics in Console.app.** Every engine, the summary window, and the
+  build step log what they did to the unified log under
+  `io.gamov.popclip.extension.ai-summarize`: model, HTTP status, retries,
+  timing, provider request IDs, CLI sign-in mode. Never the selected text, the
+  summary, or API keys. `make logs` streams them.
 
 ## [0.6.0] - 2026-09-14
 

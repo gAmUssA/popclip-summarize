@@ -12,6 +12,20 @@
 //
 
 import Foundation
+import os
+
+// Diagnostics go to the unified log (Console.app, or `make logs`) under this
+// subsystem. Metadata only — provider, model, status, attempt, timing, request
+// id. Never the selection, the summary, API keys, or provider error text, which
+// can echo the input: dynamic strings are .private unless known to be safe.
+let log = Logger(subsystem: "io.gamov.popclip.extension.ai-summarize", category: "claude")
+let started = ContinuousClock.now
+
+/// Milliseconds since this engine started.
+func elapsedMS() -> Int {
+    let (seconds, attoseconds) = started.duration(to: .now).components
+    return Int(seconds) * 1000 + Int(attoseconds / 1_000_000_000_000_000)
+}
 
 let apiURL = testServerURL() ?? URL(string: "https://api.anthropic.com/v1/messages")!
 
@@ -38,6 +52,7 @@ let maxInputCharacters = 400_000
 /// Write a message to stderr and exit. `settings: true` (exit code 2) makes
 /// PopClip open this extension's settings pane.
 func fail(_ message: String, settings: Bool = false) -> Never {
+    log.error("failed exit=\(settings ? 2 : 1, privacy: .public) after \(elapsedMS(), privacy: .public) ms: \(message, privacy: .private)")
     FileHandle.standardError.write(Data((message + "\n").utf8))
     exit(settings ? 2 : 1)
 }
@@ -71,6 +86,7 @@ guard selectedText.count <= maxInputCharacters else {
 let model = option("CUSTOMMODEL").isEmpty
     ? (option("MODEL").isEmpty ? "claude-haiku-4-5" : option("MODEL"))
     : option("CUSTOMMODEL")
+log.notice("start model=\(model, privacy: .public) style=\(option("STYLE"), privacy: .public) chars=\(selectedText.count, privacy: .public)")
 
 // MARK: - Prompt
 
@@ -234,11 +250,13 @@ while true {
         data = body
         httpResponse = response as? HTTPURLResponse
         lastTransportError = nil
+        log.info("attempt \(attempt, privacy: .public) status=\(httpResponse?.statusCode ?? 0, privacy: .public) at \(elapsedMS(), privacy: .public) ms request-id=\(httpResponse?.value(forHTTPHeaderField: "request-id") ?? "-", privacy: .public)")
         requestedWait = httpResponse.flatMap(retryAfter)
         guard let http = httpResponse, isRetryable(http.statusCode), attempt < maxAttempts else { break }
         wait = requestedWait ?? backoff(attempt: attempt)
     } catch let error as URLError where isRetryable(error) {
         lastTransportError = error
+        log.info("attempt \(attempt, privacy: .public) transport error \(error.code.rawValue, privacy: .public) at \(elapsedMS(), privacy: .public) ms")
         guard attempt < maxAttempts else { break }
         wait = backoff(attempt: attempt)
     } catch {
@@ -250,6 +268,7 @@ while true {
     // A wait that would overrun the deadline is not worth starting; report the
     // last failure instead of making the user watch a spinner for nothing.
     guard let pause = wait, clock.now + pause < deadline else { break }
+    log.info("retrying in \(Int(pause.components.seconds), privacy: .public) s (server asked: \(requestedWait != nil, privacy: .public))")
     try? await Task.sleep(for: pause)
 }
 
@@ -340,4 +359,5 @@ if stopReason == "max_tokens" {
     summary += "\n\n[truncated at \(maxTokens) tokens]"
 }
 
+log.notice("done attempts=\(attempt, privacy: .public) stop=\(stopReason ?? "-", privacy: .public) chars=\(summary.count, privacy: .public) in \(elapsedMS(), privacy: .public) ms")
 print(summary, terminator: "")

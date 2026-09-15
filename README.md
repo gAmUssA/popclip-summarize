@@ -145,6 +145,24 @@ is small (4K tokens on macOS 26), so the action refuses selections over 6,000
 characters rather than quietly summarizing only the beginning. Select less, or use
 a cloud engine for long documents.
 
+### Diagnostics
+
+Every engine logs to the unified log under subsystem
+`io.gamov.popclip.extension.ai-summarize` (categories `claude`, `responses`,
+`apple`, `cli`, `viewer`), and `lib.sh` logs builds, engine exit codes, and window
+launches through `logger` with an `ai-summarize ` prefix.
+
+```sh
+make logs         # stream live while you run an action
+make logs-recent  # the last 30 minutes
+```
+
+Or open Console.app, start streaming, and filter on `ai-summarize`. The logs carry
+metadata only: engine, model, style, selection length, HTTP status, attempt,
+retry waits, timings, provider request IDs, CLI sign-in mode. The selection,
+summary, and keys are never logged; failure messages are recorded as `<private>`
+because provider errors can echo input.
+
 ## How it works
 
 ```

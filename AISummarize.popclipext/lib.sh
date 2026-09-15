@@ -16,6 +16,13 @@ BASE_ENV=(
     "PATH=/usr/bin:/bin:/usr/sbin:/sbin"
     "LANG=${LANG:-en_US.UTF-8}"
 )
+# Diagnostics for Console.app / `make logs`. The unified log keeps no subsystem
+# for `logger`, so every line starts with "ai-summarize ". Metadata only: never
+# the selection, the summary, or a key.
+log_event() {
+    /usr/bin/logger -p user.notice "ai-summarize $*" 2>/dev/null || true
+}
+
 # Honor a toolchain the user selected per-process rather than with xcode-select.
 [[ -z "${DEVELOPER_DIR:-}" ]] || BASE_ENV+=("DEVELOPER_DIR=${DEVELOPER_DIR}")
 
@@ -60,6 +67,8 @@ build_cached() {
         return 0
     fi
 
+    log_event "build ${name} key=${key} starting"
+    local build_started=$SECONDS
     # Private: the cache holds executables that later run with your privileges.
     /bin/mkdir -p "$CACHE_DIR"
     /bin/chmod 700 "$CACHE_DIR"
@@ -68,6 +77,7 @@ build_cached() {
     if ! /usr/bin/env -i "${BASE_ENV[@]}" /usr/bin/swiftc -O -o "$scratch" "$source" \
         2>"${CACHE_DIR}/${name}.build.log"; then
         /bin/rm -f "$scratch"
+        log_event "build ${name} key=${key} FAILED after $((SECONDS - build_started))s (see ${name}.build.log)"
         echo "Could not build the ${name} helper. Details: ${CACHE_DIR}/${name}.build.log" >&2
         exit 1
     fi
@@ -75,6 +85,7 @@ build_cached() {
     # binary. Then drop this helper's older builds, including the unkeyed ones
     # earlier versions wrote. Another run's in-progress `.tmp` is left alone.
     /bin/mv -f "$scratch" "$binary"
+    log_event "build ${name} key=${key} ok in $((SECONDS - build_started))s"
     for old in "${CACHE_DIR}/${name}" "${CACHE_DIR}/${name}.hash" "${CACHE_DIR}/${name}"-*; do
         [[ "$old" == "$binary" || "$old" == *.tmp || ! -e "$old" ]] || /bin/rm -f "$old"
     done
@@ -102,6 +113,7 @@ run_engine() {
     set +e
     output="$(/usr/bin/env -i "${engine_env[@]}" "$binary" "$@")"
     status=$?
+    log_event "engine ${binary##*/} $* exit=${status}"
     set -e
     [[ $status -eq 0 ]] || exit $status
     printf '%s' "$output"
@@ -153,14 +165,17 @@ deliver() {
     for ((tries = 0; tries < 100; tries++)); do
         if [[ -e "$ready" ]]; then
             /bin/rm -f "$ready"
+            log_event "viewer ${viewer_style} ready after $((tries * 50))ms"
             return 0
         fi
         /bin/kill -0 "$pid" 2>/dev/null || break
         /bin/sleep 0.05
     done
     if /bin/kill -0 "$pid" 2>/dev/null; then
+        log_event "viewer ${viewer_style} still starting after 5s; leaving it"
         return 0
     fi
+    log_event "viewer ${viewer_style} FAILED to open (see summary-window.log)"
     /bin/rm -f "$payload" "$ready"
     echo "Couldn't open the summary window, but the summary is on the clipboard. Details: ${log}" >&2
     exit 1

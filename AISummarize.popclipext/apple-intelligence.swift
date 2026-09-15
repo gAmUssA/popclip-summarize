@@ -12,12 +12,27 @@
 //
 
 import Foundation
+import os
+
+// Diagnostics go to the unified log (Console.app, or `make logs`) under this
+// subsystem. Metadata only — provider, model, status, attempt, timing, request
+// id. Never the selection, the summary, API keys, or provider error text, which
+// can echo the input: dynamic strings are .private unless known to be safe.
+let log = Logger(subsystem: "io.gamov.popclip.extension.ai-summarize", category: "apple")
+let started = ContinuousClock.now
+
+/// Milliseconds since this engine started.
+func elapsedMS() -> Int {
+    let (seconds, attoseconds) = started.duration(to: .now).components
+    return Int(seconds) * 1000 + Int(attoseconds / 1_000_000_000_000_000)
+}
 
 // MARK: - Process plumbing
 
 /// Write a message to stderr and exit. `settings: true` (exit code 2) makes
 /// PopClip open this extension's settings pane.
 func fail(_ message: String, settings: Bool = false) -> Never {
+    log.error("failed exit=\(settings ? 2 : 1, privacy: .public) after \(elapsedMS(), privacy: .public) ms: \(message, privacy: .private)")
     FileHandle.standardError.write(Data((message + "\n").utf8))
     exit(settings ? 2 : 1)
 }
@@ -105,6 +120,8 @@ let instructions = instructionLines.joined(separator: " ")
         fail("Apple Intelligence summarization requires macOS 26 or later.")
     }
 
+    log.notice("start style=\(style, privacy: .public) chars=\(selectedText.count, privacy: .public)")
+    log.info("availability=\(String(describing: SystemLanguageModel.default.availability), privacy: .public)")
     switch SystemLanguageModel.default.availability {
     case .available:
         break
@@ -135,8 +152,10 @@ let instructions = instructionLines.joined(separator: " ")
         }
 
         // stdout is the action's result — no trailing newline.
+        log.notice("done chars=\(summary.count, privacy: .public) in \(elapsedMS(), privacy: .public) ms")
         print(summary, terminator: "")
     } catch let error as LanguageModelSession.GenerationError {
+        log.error("generation error \(String(describing: error).prefix(60), privacy: .public)")
         switch error {
         case .exceededContextWindowSize:
             fail("Selection is too long for the on-device model. Select less text.")

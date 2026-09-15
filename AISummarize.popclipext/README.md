@@ -122,6 +122,12 @@ clipboard.
 
 Your installed version is shown at the bottom of the settings.
 
+**Diagnostics:** open Console.app, choose your Mac, click Start, and search for
+`io.gamov.popclip.extension.ai-summarize` (or `ai-summarize`). Each action logs
+what it did — engine, model, HTTP status, retries, timing, request ID — but
+never your selected text, the summary, or your API keys. Include those lines
+when reporting a problem.
+
 ## Credits
 
 By [Viktor Gamov](https://github.com/gAmUssA). Source, issues, and changelog:

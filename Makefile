@@ -104,6 +104,17 @@ prebuild: ## Compile the Swift helpers into the cache now, instead of on first u
 		for f in $(EXT)/*.swift; do printf "    %s -> " "$$f"; build_cached "$$f"; echo; done'
 	@echo "==> helpers built"
 
+.PHONY: logs
+logs: ## Stream the extension's diagnostics from the unified log (Ctrl-C to stop)
+	@echo "==> streaming io.gamov.popclip.extension.ai-summarize — run an action in PopClip"
+	@/usr/bin/log stream --style compact --level info --predicate \
+		'subsystem == "io.gamov.popclip.extension.ai-summarize" OR (process == "logger" AND composedMessage BEGINSWITH "ai-summarize ")'
+
+.PHONY: logs-recent
+logs-recent: ## Show the last 30 minutes of the extension's diagnostics
+	@/usr/bin/log show --last 30m --style compact --info --predicate \
+		'subsystem == "io.gamov.popclip.extension.ai-summarize" OR (process == "logger" AND composedMessage BEGINSWITH "ai-summarize ")'
+
 .PHONY: install
 install: check ## Install the extension into PopClip
 	@open -a PopClip $(EXT)

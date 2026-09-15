@@ -16,12 +16,27 @@
 
 import Darwin
 import Foundation
+import os
+
+// Diagnostics go to the unified log (Console.app, or `make logs`) under this
+// subsystem. Metadata only — provider, model, status, attempt, timing, request
+// id. Never the selection, the summary, API keys, or provider error text, which
+// can echo the input: dynamic strings are .private unless known to be safe.
+let log = Logger(subsystem: "io.gamov.popclip.extension.ai-summarize", category: "cli")
+let started = ContinuousClock.now
+
+/// Milliseconds since this engine started.
+func elapsedMS() -> Int {
+    let (seconds, attoseconds) = started.duration(to: .now).components
+    return Int(seconds) * 1000 + Int(attoseconds / 1_000_000_000_000_000)
+}
 
 // MARK: - Process plumbing
 
 /// Write a message to stderr and exit. `settings: true` (exit code 2) makes
 /// PopClip open this extension's settings pane.
 func fail(_ message: String, settings: Bool = false) -> Never {
+    log.error("failed exit=\(settings ? 2 : 1, privacy: .public) after \(elapsedMS(), privacy: .public) ms: \(message, privacy: .private)")
     FileHandle.standardError.write(Data((message + "\n").utf8))
     exit(settings ? 2 : 1)
 }
@@ -345,7 +360,9 @@ func cleanExit(_ message: String, settings: Bool = false) -> Never {
 func summarizeWithCodex() -> String {
     // Sign-in first: it answers in a tenth of a second, while a signed-out
     // `codex exec` spends ~15 s retrying 401s before giving up.
+    log.notice("start cli=codex path=\(cliPath, privacy: .public) style=\(option("STYLE"), privacy: .public) chars=\(selectedText.count, privacy: .public)")
     let status = run(cliPath, ["login", "status"], input: Data(), timeout: 15)
+    log.info("codex login status exit=\(status.status, privacy: .public) chatgpt=\(String(decoding: status.stdout + status.stderr, as: UTF8.self).localizedCaseInsensitiveContains("chatgpt"), privacy: .public) at \(elapsedMS(), privacy: .public) ms")
     let statusText = String(decoding: status.stdout + status.stderr, as: UTF8.self)
         .trimmingCharacters(in: .whitespacesAndNewlines)
     if status.status != 0 {
@@ -390,9 +407,11 @@ func summarizeWithCodex() -> String {
     for feature in disabledFeatures { execArguments += ["--disable", feature] }
     execArguments.append("-")  // the prompt is stdin: the selection never appears in argv
 
+    log.info("codex exec starting at \(elapsedMS(), privacy: .public) ms")
     let result = run(cliPath, execArguments,
                      input: Data(framedSelection.utf8), timeout: 90)
 
+    log.info("codex exec exit=\(result.status, privacy: .public) timedOut=\(result.timedOut, privacy: .public) stdout=\(result.stdout.count, privacy: .public)B stderr=\(result.stderr.count, privacy: .public)B at \(elapsedMS(), privacy: .public) ms")
     if result.timedOut {
         cleanExit("Codex didn't finish within 90 seconds. Try again, or switch the OpenAI backend to API key.")
     }
@@ -456,8 +475,10 @@ func summarizeWithCodex() -> String {
 func summarizeWithClaude() -> String {
     // Sign-in first, and only a Claude account: an API-key or Console login
     // would bill the API, which is exactly what this backend exists to avoid.
+    log.notice("start cli=claude path=\(cliPath, privacy: .public) style=\(option("STYLE"), privacy: .public) chars=\(selectedText.count, privacy: .public)")
     let status = run(cliPath, ["auth", "status", "--json"], input: Data(), timeout: 15)
     let auth = (try? JSONSerialization.jsonObject(with: status.stdout)) as? [String: Any] ?? [:]
+    log.info("claude auth status loggedIn=\(auth["loggedIn"] as? Bool ?? false, privacy: .public) method=\(auth["authMethod"] as? String ?? "-", privacy: .public) plan=\(auth["subscriptionType"] as? String ?? "-", privacy: .public) at \(elapsedMS(), privacy: .public) ms")
     guard auth["loggedIn"] as? Bool == true else {
         cleanExit("Claude Code isn't signed in. Run `claude` in Terminal and log in with your Claude account, then try again.")
     }
@@ -486,9 +507,11 @@ func summarizeWithClaude() -> String {
         "--strict-mcp-config", "--mcp-config", #"{"mcpServers":{}}"#,
         "--disable-slash-commands",
     ]
+    log.info("claude -p starting model=\(model, privacy: .public) at \(elapsedMS(), privacy: .public) ms")
     let result = run(cliPath, arguments, input: Data(framedSelection.utf8), timeout: 90,
                      directory: workDirectory.path)
 
+    log.info("claude -p exit=\(result.status, privacy: .public) timedOut=\(result.timedOut, privacy: .public) stdout=\(result.stdout.count, privacy: .public)B at \(elapsedMS(), privacy: .public) ms")
     if result.timedOut {
         cleanExit("Claude Code didn't finish within 90 seconds. Try again, or switch the Claude backend to API key.")
     }
@@ -524,4 +547,5 @@ func summarizeWithClaude() -> String {
 
 let summary = cliName == "claude" ? summarizeWithClaude() : summarizeWithCodex()
 try? FileManager.default.removeItem(at: workDirectory)
+log.notice("done cli=\(cliName, privacy: .public) chars=\(summary.count, privacy: .public) in \(elapsedMS(), privacy: .public) ms")
 print(summary, terminator: "")

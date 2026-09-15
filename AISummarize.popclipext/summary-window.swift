@@ -18,6 +18,10 @@
 //
 
 import AppKit
+import os
+
+/// See the engines: metadata only, never the summary text.
+let log = Logger(subsystem: "io.gamov.popclip.extension.ai-summarize", category: "viewer")
 
 // MARK: - Input
 
@@ -63,6 +67,7 @@ guard !body.isEmpty else {
 
 /// Tell the launcher the window is up.
 func signalReady() {
+    log.notice("window shown style=\(style.rawValue, privacy: .public) chars=\(body.count, privacy: .public)")
     guard let path = readyPath else { return }
     FileManager.default.createFile(atPath: path, contents: nil)
 }
@@ -270,6 +275,7 @@ final class Controller: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        log.info("window closed")
         NSApp.terminate(nil)
     }
 }
@@ -443,6 +449,7 @@ final class FullScreenController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        log.info("window closed")
         NSApp.terminate(nil)
     }
 }
