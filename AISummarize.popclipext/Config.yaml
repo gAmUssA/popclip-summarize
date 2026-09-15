@@ -22,6 +22,13 @@ options:
     type: heading
     label: Claude
 
+  - identifier: showclaude
+    type: boolean
+    label: Show Claude action
+    default value: true
+    description: >-
+      Turn this off if you don't use Claude.
+
   - identifier: claudebackend
     type: multiple
     label: Backend
@@ -67,6 +74,13 @@ options:
   - identifier: openaihead
     type: heading
     label: OpenAI
+
+  - identifier: showopenai
+    type: boolean
+    label: Show OpenAI action
+    default value: true
+    description: >-
+      Needs an OpenAI API key. Turn this off if you don't use OpenAI.
 
   - identifier: openaibackend
     type: multiple
@@ -121,6 +135,13 @@ options:
     type: heading
     label: Grok
 
+  - identifier: showxai
+    type: boolean
+    label: Show Grok action
+    default value: true
+    description: >-
+      Needs an xAI API key. Turn this off if you don't use Grok.
+
   - identifier: xaikey
     type: secret
     label: API Key
@@ -150,6 +171,19 @@ options:
     description: >-
       Optional. Any xAI model ID usable with the Responses API. Overrides the
       Model setting above.
+
+  - identifier: applehead
+    type: heading
+    label: Apple Intelligence
+
+  - identifier: showapple
+    type: boolean
+    label: Show Apple Intelligence action
+    default value: true
+    description: >-
+      Requires macOS 26 or later on Apple silicon, with Apple Intelligence
+      turned on in System Settings. Runs fully on-device — no API key, no
+      network, no cost. Turn this off to hide the action on unsupported Macs.
 
   - identifier: summaryhead
     type: heading
@@ -193,33 +227,6 @@ options:
       fill the display, dismissed with Escape or a click. Every setting puts the
       summary on the clipboard, so ⌘V works afterwards. Applies to every engine.
 
-  - identifier: actionshead
-    type: heading
-    label: Actions
-
-  - identifier: showapple
-    type: boolean
-    label: Show Apple Intelligence action
-    default value: true
-    description: >-
-      Requires macOS 26 or later on Apple silicon, with Apple Intelligence
-      turned on in System Settings. Runs fully on-device — no API key, no
-      network, no cost. Turn this off to hide the action on unsupported Macs.
-
-  - identifier: showopenai
-    type: boolean
-    label: Show OpenAI action
-    default value: true
-    description: >-
-      Needs an OpenAI API key. Turn this off if you don't use OpenAI.
-
-  - identifier: showxai
-    type: boolean
-    label: Show Grok action
-    default value: true
-    description: >-
-      Needs an xAI API key. Turn this off if you don't use Grok.
-
   # Shown at the foot of the settings so a bug report can name the build.
   # `make release` refuses to tag unless this matches the release version.
   - identifier: versionhead
@@ -236,7 +243,7 @@ actions:
   - title: Summarize (Claude)
     icon: claude.svg
     shell script file: summarize-claude.sh
-    requirements: [text]
+    requirements: [text, option-showclaude=1]
 
   - title: Summarize (OpenAI)
     icon: openai.svg

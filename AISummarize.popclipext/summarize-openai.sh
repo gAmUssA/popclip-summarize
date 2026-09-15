@@ -13,7 +13,7 @@ EXT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [[ "${POPCLIP_OPTION_OPENAIBACKEND:-api}" == "codex" ]]; then
     cli_engine="$(build_cached "${EXT_DIR}/cli-summarize.swift")"
     summary="$(run_engine "$cli_engine" "" --cli codex)"
-    deliver "OpenAI · Codex (ChatGPT plan)" "$summary"
+    deliver "Codex" "$summary"
     exit 0
 fi
 

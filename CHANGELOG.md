@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Settings are grouped by provider: each section (Claude, OpenAI, Grok, Apple
+  Intelligence) starts with its own **Show … action** switch, and the Claude
+  action can now be hidden too.
+- The summary window's title names what produced the summary: the API company
+  and model (**Anthropic**, **OpenAI**, **xAI**) or the tool (**Claude Code**,
+  **Codex**) when using a plan backend.
+
 ## [1.0.0] - 2026-09-14
 
 ### Added

@@ -24,4 +24,4 @@ model="${POPCLIP_OPTION_CUSTOMMODEL:-}"
 # argument would not trip `set -e`, and the engine would run with no binary.
 engine="$(build_cached "${EXT_DIR}/claude-summarize.swift")"
 summary="$(run_engine "$engine" "APIKEY MODEL CUSTOMMODEL")"
-deliver "Claude · ${model}" "$summary"
+deliver "Anthropic · ${model}" "$summary"

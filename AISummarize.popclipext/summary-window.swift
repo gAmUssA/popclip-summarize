@@ -6,7 +6,7 @@
 //  Reads the body text from stdin. Runs its own AppKit run loop until the
 //  window is closed, so it must be launched detached from the PopClip action.
 //
-//  Usage: summary-window --title "Claude · Sonnet 5" [--style panel|fullscreen]
+//  Usage: summary-window --title "Anthropic · claude-sonnet-5" [--style panel|fullscreen]
 //         [--ready <path>] < summary.txt
 //
 //  --ready names a file to create once the window is on screen, so the
