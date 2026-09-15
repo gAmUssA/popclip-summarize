@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-14
+
 ### Changed
 
 - Settings are grouped by provider: each section (Claude, OpenAI, Grok, Apple
@@ -240,7 +242,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make check` validation of the config, both scripts, and the executable bit,
   wired into CI.
 
-[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/gAmUssA/popclip-summarize/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.6.0...v1.0.0
 [0.6.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.4.0...v0.5.0
