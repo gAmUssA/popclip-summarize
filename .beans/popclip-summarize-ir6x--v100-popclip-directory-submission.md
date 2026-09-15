@@ -5,7 +5,7 @@ status: in-progress
 type: milestone
 priority: normal
 created_at: 2026-09-14T21:26:05Z
-updated_at: 2026-09-14T22:13:51Z
+updated_at: 2026-09-15T00:07:18Z
 blocked_by:
     - popclip-summarize-524k
 ---
@@ -15,3 +15,7 @@ Get the extension accepted into the official PopClip Directory (https://www.popc
 Source: submission-readiness audit (2026-09-14). Architecture decision: keep native Swift engines + AppKit panel and defend it in the shell rationale (see decision bean) rather than porting cloud engines to JavaScript.
 
 Depends on v0.5.0 (packaging items overlap).
+
+## Status (2026-09-14)
+
+Submitted: v1.0.0 passed the automated Submission Check and is **awaiting manual review** (sub_6qXONnoBiq83). Close this milestone when the listing is Published; address reviewer feedback via a new tag (only changed files are re-reviewed).
