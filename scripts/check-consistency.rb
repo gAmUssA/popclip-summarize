@@ -100,13 +100,35 @@ blocks.drop(1).each do |name, block|
   fail!("prompt: #{name} orders its lines differently from #{reference_name}") if (block - reference).empty? && (reference - block).empty?
 end
 
+# 3b. So is the code around it: the style switch and word budgets, the
+#     short-selection guard, the language and final-check lines, and the
+#     source-tag escaping, and the word cap restated after the source. The
+#     on-device engine reads the style into a local
+#     rather than through option(), which is the only difference allowed.
+def prompt_setup(name)
+  source = read(name)
+  setup = source[/^(?:\/\/ `wordBudget`.*?\n)?let styleInstruction: String\n.*?\n    : "Final check:[^\n]*\n/m]
+  escape = source[/^let escapedSelection = .*?\n\)\n/m]
+  reminder = source[/^let lengthReminder = .*\n/]
+  fail!("#{name}: no style-to-final-check setup block found") unless setup
+  fail!("#{name}: no escapedSelection block found") unless escape
+  fail!("#{name}: no lengthReminder line found") unless reminder
+  "#{setup}#{escape}#{reminder}".gsub('option("STYLE")', "style")
+end
+setups = ENGINES.to_h { |name| [name, prompt_setup(name)] }
+setups.drop(1).each do |name, setup|
+  next if setup == setups[ENGINES.first]
+
+  fail!("prompt setup: #{name} differs from #{ENGINES.first} (style budgets, short-selection guard, language, final check, tag escaping, or length reminder)")
+end
+
 # 4. Each wrapper passes its engine every option the engine reads. run_engine
-#    gives an engine only STYLE, EXTRA, and the options its wrapper names, so an
+#    gives an engine only STYLE, EXTRA, LANGUAGE, CUSTOMLANGUAGE, and the options its wrapper names, so an
 #    omission here reads as "unset" at runtime, not as an error.
-SHARED_OPTIONS = %w[STYLE EXTRA].freeze
+SHARED_OPTIONS = %w[STYLE EXTRA LANGUAGE CUSTOMLANGUAGE].freeze
 engine_reads = {
   "claude-summarize.swift" => read("claude-summarize.swift").scan(/\boption\("([A-Z0-9_]+)"\)/).flatten,
-  "apple-intelligence.swift" => read("apple-intelligence.swift").scan(/POPCLIP_OPTION_([A-Z0-9_]+)/).flatten,
+  "apple-intelligence.swift" => read("apple-intelligence.swift").scan(/\boption\("([A-Z0-9_]+)"\)|POPCLIP_OPTION_([A-Z0-9_]+)/).flatten.compact,
   "cli-summarize.swift" => read("cli-summarize.swift").scan(/\boption\("([A-Z0-9_]+)"\)/).flatten,
 }
 # CLI backends read their model options through a table keyed by --cli.

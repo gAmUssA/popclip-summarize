@@ -8,6 +8,9 @@ EXT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 . "${EXT_DIR}/lib.sh"
 
+# A selected link becomes the text of its page.
+resolve_link
+
 # Experimental: summarize through the user's own signed-in Codex CLI instead of
 # the API. Opt-in via the Backend setting; the API path below is the default.
 if [[ "${POPCLIP_OPTION_OPENAIBACKEND:-api}" == "codex" ]]; then

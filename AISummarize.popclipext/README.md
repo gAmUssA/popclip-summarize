@@ -2,7 +2,8 @@
 
 Select text anywhere, click **Summarize**, and read a short summary in a floating
 panel next to the pointer. Choose Claude, OpenAI, or Grok in the cloud, or Apple
-Intelligence on your Mac.
+Intelligence on your Mac. Select a link on its own to summarize the page it
+points to.
 
 ## Requirements
 
@@ -68,7 +69,8 @@ ChatGPT plan*, then in Terminal run `codex login` once.
    stored in your macOS Keychain.
 3. Optionally pick a model, a summary **Style** (concise paragraph, bullet
    points, or a one-line TL;DR), and **Extra Instructions** such as
-   `Reply in French.`
+   `Reply in French.` Summaries come back in the selection's language unless
+   you pick one under **Language**.
 4. Select some text and click an action.
 
 The first run of each action takes a few extra seconds while it compiles.
@@ -87,13 +89,17 @@ clipboard.
   model name, and that provider's API key to that provider only. Nothing is sent
   anywhere else, and one provider's key is never given to another provider's
   engine.
+- **Selected links:** with **Summarize links** on, a selection that is only a
+  link is downloaded from that website, without cookies or a login, and the
+  page's text is summarized like any other selection.
 - OpenAI and Grok requests ask the provider not to store the request
   (`store: false`). Each provider's own data-retention policy still applies.
 - **With the experimental plan backends**, the selection goes to Anthropic or
   OpenAI through your Claude or ChatGPT account, and that account's data
   controls apply: your content may be used to improve models unless you turn
   that off in Claude's or ChatGPT's privacy settings.
-- **Apple Intelligence** runs entirely on your Mac. Nothing leaves it.
+- **Apple Intelligence** runs entirely on your Mac. Nothing goes to an AI
+  provider; the only network request is downloading a selected link's page.
 - The extension keeps no history. The summary is placed on the clipboard, and a
   temporary copy used to open the panel is deleted as soon as the panel reads it.
 
@@ -111,8 +117,13 @@ clipboard.
   **"Codex isn't signed in"** or **"sign-in was rejected"**: run `codex login` in
   Terminal. **"signed in with an API key"**: sign in with ChatGPT instead, or
   switch the Backend back to API key.
-- **"Selection is too long for the on-device model": Apple Intelligence handles
-  up to 6,000 characters. Select less, or use a cloud action.
+- **"This is too long for the on-device model"**: Apple Intelligence handles
+  up to 6,000 characters, which most web pages exceed. Select less, or use a
+  cloud action.
+- **"Couldn't find readable text on that page"**: the page needs JavaScript or a
+  login. Open it in your browser, select the text, and summarize that.
+- **"The selection is already short"**: it has no more words than the summary
+  would (40, or 25 for TL;DR), so there is nothing to summarize.
 - **"Apple Intelligence is turned off"**: turn it on in System Settings.
 - **"AI Summarize needs the Xcode Command Line Tools"**: run
   `xcode-select --install`, then try again.

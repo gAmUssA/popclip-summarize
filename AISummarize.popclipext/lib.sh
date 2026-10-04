@@ -92,6 +92,32 @@ build_cached() {
     printf '%s' "$binary"
 }
 
+# When the whole selection is one web link and Summarize Links is on, replace
+# the selection with the readable text of the page it points to, and remember
+# the site for the window title. Anything else — including a link inside other
+# text — is summarized as selected.
+LINK_HOST=""
+resolve_link() {
+    [[ "${POPCLIP_OPTION_FETCHLINKS:-1}" == "1" ]] || return 0
+    [[ "${POPCLIP_TEXT:-}" =~ ^[[:space:]]*(https?://[^[:space:]]+)[[:space:]]*$ ]] || return 0
+    local url="${BASH_REMATCH[1]}" fetcher page status
+
+    fetcher="$(build_cached "${EXT_DIR}/fetch-page.swift")"
+    set +e
+    # The URL is an argument, but the page is only a download: the helper gets
+    # no PopClip values, so it holds no API key and no selection besides it.
+    page="$(/usr/bin/env -i "${BASE_ENV[@]}" "$fetcher" "$url")"
+    status=$?
+    set -e
+    log_event "link fetch exit=${status} chars=${#page}"
+    [[ $status -eq 0 ]] || exit $status
+
+    POPCLIP_TEXT="$page"
+    LINK_HOST="${url#*://}"
+    LINK_HOST="${LINK_HOST%%[/?#]*}"
+    LINK_HOST="${LINK_HOST##*@}"
+}
+
 # Run a summarization engine and print its summary, preserving its exit status
 # so PopClip still sees exit code 2 (open settings) and the stderr message.
 #
@@ -104,7 +130,7 @@ run_engine() {
     local binary="$1" own_options="$2" output status id
     shift 2
     local -a engine_env=("${BASE_ENV[@]}" "POPCLIP_TEXT=${POPCLIP_TEXT:-}")
-    for id in STYLE EXTRA $own_options; do
+    for id in STYLE EXTRA LANGUAGE CUSTOMLANGUAGE $own_options; do
         local var="POPCLIP_OPTION_${id}"
         [[ -z "${!var+set}" ]] || engine_env+=("${var}=${!var}")
     done
@@ -123,6 +149,7 @@ run_engine() {
 deliver() {
     local title="$1" summary="$2"
     local mode="${POPCLIP_OPTION_OUTPUT:-window}"
+    [[ -z "$LINK_HOST" ]] || title="${title} · ${LINK_HOST}"
 
     # Stage the summary on the clipboard whichever mode is set. For the two
     # window modes this mirrors what Large Type used to do: dismiss it and ⌘V

@@ -8,6 +8,9 @@ EXT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 . "${EXT_DIR}/lib.sh"
 
+# A selected link becomes the text of its page.
+resolve_link
+
 model="${POPCLIP_OPTION_XAICUSTOMMODEL:-}"
 [[ -n "$model" ]] || model="${POPCLIP_OPTION_XAIMODEL:-grok-4.3}"
 

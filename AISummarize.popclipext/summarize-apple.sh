@@ -20,6 +20,10 @@ if (( macos_major < 26 )); then
     exit 1
 fi
 
+# A selected link becomes the text of its page. Downloading the page is the only
+# network request this action makes; the page still goes to no AI provider.
+resolve_link
+
 # Kept as separate assignments: a failing command substitution nested in an
 # argument would not trip `set -e`, and the engine would run with no binary.
 engine="$(build_cached "${EXT_DIR}/apple-intelligence.swift")"

@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-04
+
+### Added
+
+- **Summarize a link.** Select a link on its own and any action summarizes the
+  page it points to: article text from HTML pages (navigation, banners, cookie
+  notices, and comments dropped), PDFs, and plain text. The window title names
+  the site. Pages that need JavaScript or a login can't be read and say so.
+  Turn it off with **Summarize links**. For Apple Intelligence, downloading the
+  page is the only network request; nothing goes to an AI provider.
+- **Language** setting: keep summaries in the selection's language (the
+  default), or pick one for every engine. **Custom Language** takes any name,
+  such as `Brazilian Portuguese`.
+
+### Changed
+
+Prompt changes adapted from [steipete/summarize](https://github.com/steipete/summarize),
+measured old against new over 64 runs per engine on Claude, OpenAI, Grok, and
+Apple Intelligence:
+
+- **Summaries come back in the selection's language.** The engine detects the
+  language on-device and names it in the prompt. Claude and Grok had answered
+  German and Chinese selections in English every time; now none did.
+  `Reply in French.` in Extra Instructions still overrides it.
+- **Shorter selections are not sent.** A selection with no more words than the
+  summary (40, or 25 for TL;DR) fails with "The selection is already short"
+  instead of coming back padded or copied, and costs nothing.
+- **Summaries keep to their word limit.** The limit is restated at the end of
+  the instructions and again right after the selected text. Claude Haiku went
+  over it in 21 of 30 runs with the first restatement alone and in 5 of 30 with
+  both; the other engines in 0 or 1.
+- Claude's output cap now depends on the style (256 tokens for TL;DR, 384 for
+  concise, 768 for bullets) instead of a flat 1,024. It never shortens a
+  normal summary; it only limits what a runaway reply can cost.
+- The on-device size error now reads "This is too long for the on-device
+  model", since it also applies to downloaded pages.
+- **Threads and web pages.** Conversations summarize to the outcome and the
+  positions instead of a message-by-message recap, which helped Apple
+  Intelligence most. The prompt also names navigation, ads, and cookie notices
+  as text to drop; no engine repeated them in testing, before or after.
+
+### Fixed
+
+- A selection containing `</source>` can no longer close the prompt's source
+  frame and pose as instructions: source tags inside it are escaped. Other text,
+  such as `R&D` or HTML, is sent unchanged.
+
 ## [1.0.1] - 2026-09-14
 
 ### Changed
@@ -242,7 +289,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make check` validation of the config, both scripts, and the executable bit,
   wired into CI.
 
-[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/gAmUssA/popclip-summarize/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/gAmUssA/popclip-summarize/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/gAmUssA/popclip-summarize/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.6.0...v1.0.0
 [0.6.0]: https://github.com/gAmUssA/popclip-summarize/compare/v0.5.0...v0.6.0

@@ -9,7 +9,7 @@ Four engines, one extension:
 | **Summarize (Claude)**             | Anthropic Messages API      | API key, network         | ~$0.002 / summary on Haiku 4.5     | Text is sent to Anthropic                    |
 | **Summarize (OpenAI)**            | OpenAI Responses API        | API key, network         | ~$0.0004 / summary on GPT-5.6 Luna | Text is sent to OpenAI (with `store: false`) |
 | **Summarize (Grok)**               | xAI Responses API           | API key, network         | ~$0.002 / summary on Grok 4.3      | Text is sent to xAI (with `store: false`)    |
-| **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free                               | Nothing leaves the Mac                       |
+| **Summarize (Apple Intelligence)** | On-device Foundation Models | macOS 26+, Apple silicon | Free                               | Nothing goes to an AI provider               |
 
 All actions honor the same **Style** and **Extra Instructions** settings and show
 their result in the same native floating panel, so you can switch engines without
@@ -72,8 +72,11 @@ Open **PopClip → Extensions → AI Summarize → Settings** (the gear icon).
 | **Grok › Model**                   | `grok-4.3`         | Grok 4.3 is the fastest and cheapest; 4.5 and 4.6 trade cost for quality. Reasoning effort is pinned to the lowest each model allows (`none` on 4.3, `low` on 4.5 and 4.6).                              |
 | **Grok › Custom Model**            | —                  | Any xAI model ID usable with the Responses API. Overrides **Model**; IDs outside `grok-4.3*` / `grok-4.5*` / `grok-4.6*` are sent without a reasoning setting.                                           |
 | **Apple Intelligence › Show Apple Intelligence action** | On                 | Turn off to hide the action on Macs without Apple Intelligence.                                                                                                                                          |
-| **Style**                          | Concise paragraph  | Also: bullet points, or a one-line TL;DR. Applies to all engines.                                                                                                                                        |
-| **Extra Instructions**             | —                  | Appended to the prompt for every engine. e.g. `Reply in French.`                                                                                                                                         |
+| **Style**                          | Concise paragraph  | Also: bullet points, or a one-line TL;DR. Applies to all engines. Summaries come back in the selection's language; selections no longer than the summary itself (40 words, 25 for TL;DR) are not sent. |
+| **Language**                       | Same as the selection | Or a fixed output language for every engine. Detected on-device and named in the prompt when set to automatic.                                                                                     |
+| **Custom Language**                | —                  | Any language name, e.g. `Brazilian Portuguese`. Overrides **Language**.                                                                                                                                 |
+| **Summarize links**                | On                 | When the selection is only a web link, download the page (no cookies or login) and summarize its text. Handles HTML pages, PDFs, and plain text; the window title names the site.                |
+| **Extra Instructions**             | —                  | Appended to the prompt for every engine. e.g. `Reply in French.`, which overrides the automatic language.                                                                                              |
 | **Result**                         | Summary window     | The floating panel, full-screen large type, or clipboard-only. Applies to all engines.                                                                                                                   |
 
 ### Reading the summary
@@ -141,10 +144,19 @@ that is the on-device model loading into memory on first use. It stays warm afte
 `xcode-select -p` prints a path. Build errors are logged next to the binaries in
 `~/Library/Caches/io.gamov.popclip.extension.ai-summarize/`.
 
-**"Selection is too long for the on-device model"** — the on-device context window
+**"This is too long for the on-device model"** — the on-device context window
 is small (4K tokens on macOS 26), so the action refuses selections over 6,000
 characters rather than quietly summarizing only the beginning. Select less, or use
 a cloud engine for long documents.
+
+**"Couldn't find readable text on that page"** — a selected link led to a page
+that renders with JavaScript or needs a login, which the downloader can't see.
+Open it in your browser, select the article text, and summarize that.
+
+**"The selection is already short"** — the selection has no more words than the
+summary would (40, or 25 for TL;DR), so there is nothing to condense and no
+request is made. Words are counted by language-aware boundaries, so Chinese or
+Japanese text without spaces is not mistaken for one word.
 
 ### Diagnostics
 
@@ -173,11 +185,12 @@ AISummarize.popclipext/
 ├── summarize-openai.sh       # action → build, run the OpenAI engine, present
 ├── summarize-grok.sh        # action → build, run the Grok engine, present
 ├── summarize-apple.sh        # action → build, run the on-device engine, present
-├── lib.sh                    # shared: build cache + result delivery
+├── lib.sh                    # shared: build cache, link resolution, result delivery
 ├── claude-summarize.swift    # engine → Anthropic Messages API
 ├── responses-summarize.swift # engine → Responses API, for OpenAI and xAI (--provider)
 ├── cli-summarize.swift       # experimental engine → your signed-in Claude Code or Codex (--cli)
 ├── apple-intelligence.swift  # engine → FoundationModels (on-device)
+├── fetch-page.swift          # a selected link → the page's readable text (HTML, PDF, plain text)
 ├── summary-window.swift      # the result panel and large type (AppKit)
 ├── summarize.svg, on-device.svg  # original icons: extension, Apple Intelligence action
 ├── claude.svg, openai.svg, grok.svg  # provider action icons (see License)
